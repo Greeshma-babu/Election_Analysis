@@ -1,2 +1,12 @@
 psycopg2-binary
 python-dotenv
+pandas
+openpyxl
+streamlit
+folium 
+streamlit-folium
+plotly
+scikit-learn
+xgboost
+joblib
+numpy
