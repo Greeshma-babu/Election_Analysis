@@ -155,5 +155,29 @@ conn.close()
 # Interactive Streamlit Application for Election Analysis
 # -------------------------------------------------------
 
-charts = ElectionCharts(df)
+# Rename columns to match what ElectionCharts / the trained models expect.
+# The Excel/DB uses long descriptive names (voter_turnout_2016_pct); the
+# models in election_model.py were trained on short names (turnout_2016).
+# This mapping bridges the two without touching election_charts.py or
+# retraining the models.
+df_for_charts = df.rename(columns={
+    'voter_turnout_2016_pct': 'turnout_2016',
+    'voter_turnout_2021_pct': 'turnout_2021',
+    'turnout_change_2021_pct': 'turnout_change_21',
+    'margin_of_victory_2016_pct': 'margin_2016',
+    'swing_factor_2016_pct': 'swing_2016',
+})
+
+# Sanity check: confirm every column ElectionCharts needs is now present,
+# so a missing/misspelled column fails loudly here instead of deep inside
+# a chart method during rendering.
+required_cols = ['state', 'demographic', 'turnout_2016', 'turnout_2021',
+                  'turnout_change_21', 'margin_2016', 'swing_2016', 'result_2016']
+missing = [c for c in required_cols if c not in df_for_charts.columns]
+if missing:
+    st.error(f"Data is missing required columns for charts: {missing}")
+    st.stop()
+
+charts = ElectionCharts(df_for_charts)
 charts.plot_seats_won_by_party()
+charts.plot_turnout_scenario()

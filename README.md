@@ -5,3 +5,12 @@ Kerala Assembly Election Analysis and Prediction using Machine Learning — EDA,
 
 & "..\.venv\Scripts\python.exe" -m pip install -r ".\requirements.txt"
 Create a Database - election_db in postgres database
+
+
+python -m venv venv
+venv\Scripts\Activate
+pip install --user jupyter ipykernel accelerate - If any error 
+python -m pip install -r requirements.txt
+pip list | findstr langchain
+pip install streamlit
+uvicorn app:app --reloa
