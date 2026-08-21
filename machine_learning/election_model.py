@@ -1,725 +1,506 @@
-import pathlib
-import json
-import pandas as pd
-import joblib
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.metrics import (
-    r2_score,
-    accuracy_score,
-    classification_report
-)
-
-
 # =========================================================
-# PATH CONFIGURATION
+# CONSTITUENCY ELECTION MAP
+# DOES NOT REQUIRE LATITUDE / LONGITUDE
 # =========================================================
 
-# This file is inside:
-# Election_Analysis/machine_learning/
-#
-# parent.parent -> Election_Analysis/
+def plot_merged_election_map(
+    self,
+    prediction_df=None,
+    turnout_delta=0
+):
 
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
+    st.markdown(
+        "### 🗺️ Constituency Election Map"
+    )
 
-DATA_DIR = BASE_DIR / "dataset" / "training"
-MODEL_DIR = BASE_DIR / "models"
+    st.caption(
+        "Merged view of constituency results for "
+        "2011, 2016, 2021 and the turnout-based prediction."
+    )
 
-# Create model directory if it does not exist
-MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    # =====================================================
+    # REQUIRED COLUMNS
+    # =====================================================
 
+    required_columns = [
+        "constituency_id",
+        "state",
+        "result_2011",
+        "result_2016",
+        "result_2021",
+        "turnout_2011",
+        "turnout_2016",
+        "turnout_2021"
+    ]
 
-# =========================================================
-# STEP 1: LOAD THE THREE YEARLY ELECTION FILES
-# =========================================================
+    missing = [
+        col
+        for col in required_columns
+        if col not in self.df.columns
+    ]
 
-df_2011 = pd.read_csv(
-    DATA_DIR / "election_2011.csv"
-)
+    if missing:
 
-df_2016 = pd.read_csv(
-    DATA_DIR / "election_2016.csv"
-)
-
-df_2021 = pd.read_csv(
-    DATA_DIR / "election_2021.csv"
-)
-
-
-# =========================================================
-# STEP 2: RENAME COLUMNS
-# =========================================================
-
-df_2011 = df_2011.rename(columns={
-    "result": "result_2011",
-    "voter_turnout_pct": "turnout_2011",
-    "margin_of_victory_pct": "margin_2011",
-    "swing_factor_pct": "swing_2011"
-}).drop(
-    columns=["election_year"],
-    errors="ignore"
-)
-
-
-df_2016 = df_2016.rename(columns={
-    "result": "result_2016",
-    "voter_turnout_pct": "turnout_2016",
-    "margin_of_victory_pct": "margin_2016",
-    "swing_factor_pct": "swing_2016"
-}).drop(
-    columns=["election_year"],
-    errors="ignore"
-)
-
-
-df_2021 = df_2021.rename(columns={
-    "result": "result_2021",
-    "voter_turnout_pct": "turnout_2021",
-    "margin_of_victory_pct": "margin_2021",
-    "swing_factor_pct": "swing_2021"
-}).drop(
-    columns=["election_year"],
-    errors="ignore"
-)
-
-
-# =========================================================
-# STEP 3: MERGE 2011 + 2016 + 2021
-# =========================================================
-
-# 2011 contains the common columns:
-# constituency_id
-# state
-# demographic
-# result_2011
-# turnout_2011
-# margin_2011
-# swing_2011
-#
-# For 2016 and 2021, state and demographic are removed
-# because they already exist from 2011.
-
-merged = df_2011.merge(
-    df_2016.drop(
-        columns=["state", "demographic"],
-        errors="ignore"
-    ),
-    on="constituency_id"
-).merge(
-    df_2021.drop(
-        columns=["state", "demographic"],
-        errors="ignore"
-    ),
-    on="constituency_id"
-)
-
-
-print("Merged shape:", merged.shape)
-
-
-# =========================================================
-# STEP 4: DATA CLEANING
-# =========================================================
-
-# Remove duplicate constituencies if any
-merged.drop_duplicates(
-    subset="constituency_id",
-    inplace=True
-)
-
-
-# Remove extra spaces from text columns
-string_columns = merged.select_dtypes(
-    include="object"
-).columns
-
-for column in string_columns:
-    merged[column] = merged[column].str.strip()
-
-
-# Convert numeric columns to numeric
-numeric_columns = [
-    "turnout_2011",
-    "turnout_2016",
-    "turnout_2021",
-    "margin_2011",
-    "margin_2016",
-    "margin_2021",
-    "swing_2011",
-    "swing_2016",
-    "swing_2021"
-]
-
-for column in numeric_columns:
-
-    if column in merged.columns:
-        merged[column] = pd.to_numeric(
-            merged[column],
-            errors="coerce"
+        st.error(
+            "Required election columns are missing: "
+            + ", ".join(missing)
         )
 
+        return
 
-# Check missing values
-missing_values = merged.isnull().sum()
+    # =====================================================
+    # MAP VIEW SELECTOR
+    # =====================================================
 
-if missing_values.any():
+    map_year = st.selectbox(
 
-    print("\nMissing values found:")
+        "Map View",
 
-    print(
-        missing_values[
-            missing_values > 0
+        [
+            "2011",
+            "2016",
+            "2021",
+            "New Prediction"
+        ],
+
+        key="merged_map_year"
+    )
+
+    # =====================================================
+    # BASE DATA
+    # =====================================================
+
+    if map_year == "2011":
+
+        map_df = self.df.copy()
+
+        map_df["map_winner"] = (
+            map_df["result_2011"]
+        )
+
+        map_df["map_turnout"] = (
+            map_df["turnout_2011"]
+        )
+
+        map_title = "2011 Election Result"
+
+    elif map_year == "2016":
+
+        map_df = self.df.copy()
+
+        map_df["map_winner"] = (
+            map_df["result_2016"]
+        )
+
+        map_df["map_turnout"] = (
+            map_df["turnout_2016"]
+        )
+
+        map_title = "2016 Election Result"
+
+    elif map_year == "2021":
+
+        map_df = self.df.copy()
+
+        map_df["map_winner"] = (
+            map_df["result_2021"]
+        )
+
+        map_df["map_turnout"] = (
+            map_df["turnout_2021"]
+        )
+
+        map_title = "2021 Election Result"
+
+    else:
+
+        # =================================================
+        # NEW PREDICTION
+        # =================================================
+
+        if prediction_df is None:
+
+            st.info(
+                "Run the Turnout Scenario Simulator "
+                "to generate the new prediction."
+            )
+
+            return
+
+        map_df = prediction_df.copy()
+
+        if "scenario_pred_winner" not in map_df.columns:
+
+            st.warning(
+                "Prediction winner column is not available."
+            )
+
+            return
+
+        map_df["map_winner"] = (
+            map_df["scenario_pred_winner"]
+        )
+
+        map_df["map_turnout"] = (
+            map_df["new_turnout_2021"]
+        )
+
+        map_title = (
+            f"New Prediction "
+            f"(Turnout {turnout_delta:+d}%)"
+        )
+
+    # =====================================================
+    # CREATE DISPLAY LABEL
+    # =====================================================
+
+    map_df["Constituency"] = (
+        map_df["constituency_id"].astype(str)
+    )
+
+    map_df["State"] = (
+        map_df["state"].astype(str)
+    )
+
+    map_df["Winner"] = (
+        map_df["map_winner"].astype(str)
+    )
+
+    # =====================================================
+    # HISTORICAL INFORMATION
+    # =====================================================
+
+    map_df["2011 Winner"] = (
+        map_df["result_2011"]
+    )
+
+    map_df["2016 Winner"] = (
+        map_df["result_2016"]
+    )
+
+    map_df["2021 Winner"] = (
+        map_df["result_2021"]
+    )
+
+    map_df["2011 Turnout"] = (
+        map_df["turnout_2011"]
+    )
+
+    map_df["2016 Turnout"] = (
+        map_df["turnout_2016"]
+    )
+
+    map_df["2021 Turnout"] = (
+        map_df["turnout_2021"]
+    )
+
+    # =====================================================
+    # PREDICTION INFORMATION
+    # =====================================================
+
+    if prediction_df is not None:
+
+        if "scenario_pred_winner" in map_df.columns:
+
+            map_df["Predicted Winner"] = (
+                map_df["scenario_pred_winner"]
+            )
+
+        if "scenario_pred_margin" in map_df.columns:
+
+            map_df["Predicted Margin"] = (
+                map_df["scenario_pred_margin"]
+            )
+
+        if "scenario_pred_retained_label" in map_df.columns:
+
+            map_df["Prediction Status"] = (
+                map_df[
+                    "scenario_pred_retained_label"
+                ]
+            )
+
+        if "new_turnout_2021" in map_df.columns:
+
+            map_df["Scenario Turnout"] = (
+                map_df["new_turnout_2021"]
+            )
+
+    # =====================================================
+    # PARTY COLORS
+    # =====================================================
+
+    parties = sorted(
+        map_df["Winner"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    palette = [
+        "#E74C3C",
+        "#3498DB",
+        "#2ECC71",
+        "#F39C12",
+        "#9B59B6",
+        "#1ABC9C",
+        "#E67E22",
+        "#34495E",
+        "#D35400",
+        "#8E44AD",
+        "#C0392B",
+        "#16A085"
+    ]
+
+    party_colors = {
+        party: palette[
+            i % len(palette)
         ]
+        for i, party in enumerate(parties)
+    }
+
+    # =====================================================
+    # COLOR COLUMN
+    # =====================================================
+
+    map_df["Color"] = (
+        map_df["Winner"]
+        .map(party_colors)
+        .fillna("#7F8C8D")
     )
 
+    # =====================================================
+    # STATE / CONSTITUENCY VISUAL MAP
+    # =====================================================
 
-# =========================================================
-# STEP 5: FEATURE ENGINEERING
-# =========================================================
+    fig = px.scatter(
 
-# Turnout change from 2011 -> 2016
-merged["turnout_change_16"] = (
-    merged["turnout_2016"]
-    - merged["turnout_2011"]
-)
+        map_df,
 
+        x="State",
 
-# Turnout change from 2016 -> 2021
-merged["turnout_change_21"] = (
-    merged["turnout_2021"]
-    - merged["turnout_2016"]
-)
+        y="Constituency",
 
+        color="Winner",
 
-# Margin change from 2011 -> 2016
-merged["margin_change_16"] = (
-    merged["margin_2016"]
-    - merged["margin_2011"]
-)
+        color_discrete_map=party_colors,
 
+        hover_name="Constituency",
 
-# Margin change from 2016 -> 2021
-merged["margin_change_21"] = (
-    merged["margin_2021"]
-    - merged["margin_2016"]
-)
+        hover_data={
 
+            "State": True,
 
-# Seat flip from 2011 -> 2016
-merged["seat_flip_16"] = (
-    merged["result_2016"]
-    != merged["result_2011"]
-).astype(int)
+            "Winner": True,
 
+            "2011 Winner": True,
 
-# Seat flip from 2016 -> 2021
-merged["seat_flip_21"] = (
-    merged["result_2021"]
-    != merged["result_2016"]
-).astype(int)
+            "2016 Winner": True,
 
+            "2021 Winner": True,
 
-# Retention target
-#
-# 1 = Retained
-# 0 = Lost
-#
-# Based on the current rule:
-# margin > 5 -> retained
+            "2011 Turnout": ":.2f",
 
-merged["retained_2021"] = (
-    merged["margin_2021"] > 5
-).astype(int)
+            "2016 Turnout": ":.2f",
 
+            "2021 Turnout": ":.2f",
 
-# =========================================================
-# STEP 6: ENCODE CATEGORICAL FEATURES
-# =========================================================
+            "Constituency": False
+        },
 
-# ---------------------------------------------------------
-# DEMOGRAPHIC
-# ---------------------------------------------------------
-
-demographic_map = {
-    "Urban": 0,
-    "Semi-Urban": 1,
-    "Rural": 2
-}
-
-merged["demographic_encoded"] = (
-    merged["demographic"]
-    .map(demographic_map)
-)
-
-
-# Check for unknown demographic values
-unknown_demographic = merged.loc[
-    merged["demographic_encoded"].isnull(),
-    "demographic"
-].unique()
-
-
-if len(unknown_demographic) > 0:
-
-    raise ValueError(
-        "Unknown demographic values found: "
-        f"{unknown_demographic.tolist()}"
+        title=map_title
     )
 
-
-# ---------------------------------------------------------
-# STATE ENCODER
-# ---------------------------------------------------------
-
-state_encoder = LabelEncoder()
-
-merged["state_encoded"] = (
-    state_encoder.fit_transform(
-        merged["state"]
-    )
-)
-
-
-# ---------------------------------------------------------
-# PARTY ENCODER
-# ---------------------------------------------------------
-
-party_encoder = LabelEncoder()
-
-merged["result_2016_encoded"] = (
-    party_encoder.fit_transform(
-        merged["result_2016"]
-    )
-)
-
-
-# =========================================================
-# STEP 7: DEFINE FEATURES
-# =========================================================
-
-# IMPORTANT:
-#
-# These columns and their order MUST remain exactly the
-# same when making predictions later.
-#
-# The scenario simulator and election_charts.py use
-# this same FEATURE_COLS list.
-
-feature_cols = [
-    "state_encoded",
-    "demographic_encoded",
-    "turnout_2016",
-    "turnout_2021",
-    "turnout_change_21",
-    "margin_2016",
-    "swing_2016",
-    "result_2016_encoded"
-]
-
-
-# =========================================================
-# STEP 8: BUILD X AND Y
-# =========================================================
-
-X = merged[feature_cols]
-
-
-# ---------------------------------------------------------
-# Target 1: Margin of Victory
-# Regression problem
-# ---------------------------------------------------------
-
-y_margin = merged["margin_2021"]
-
-
-# ---------------------------------------------------------
-# Target 2: Incumbent Retention
-# Classification problem
-# ---------------------------------------------------------
-
-y_retained = merged["retained_2021"]
-
-
-# ---------------------------------------------------------
-# Target 3: Winning Party
-# Classification problem
-# ---------------------------------------------------------
-
-y_party = merged["result_2021"]
-
-
-print("\nFeature columns:")
-print(feature_cols)
-
-print("\nX shape:")
-print(X.shape)
-
-print("\nMargin target shape:")
-print(y_margin.shape)
-
-print("\nRetention target shape:")
-print(y_retained.shape)
-
-print("\nParty target shape:")
-print(y_party.shape)
-
-
-# =========================================================
-# STEP 9: TRAIN / TEST SPLIT
-# =========================================================
-
-(
-    X_train,
-    X_test,
-    y_margin_train,
-    y_margin_test,
-    y_retained_train,
-    y_retained_test,
-    y_party_train,
-    y_party_test
-) = train_test_split(
-    X,
-    y_margin,
-    y_retained,
-    y_party,
-    test_size=0.2,
-    random_state=42
-)
-
-
-# =========================================================
-# STEP 10: SAVE TEST DATA
-# =========================================================
-
-# Save constituency IDs separately so that they can be
-# attached back to prediction results later.
-
-id_train = merged.loc[
-    X_train.index,
-    "constituency_id"
-]
-
-id_test = merged.loc[
-    X_test.index,
-    "constituency_id"
-]
-
-
-id_train.to_csv(
-    DATA_DIR / "id_train.csv",
-    index=False
-)
-
-
-id_test.to_csv(
-    DATA_DIR / "id_test.csv",
-    index=False
-)
-
-
-# Save feature datasets
-X_train.to_csv(
-    DATA_DIR / "X_train.csv",
-    index=False
-)
-
-
-X_test.to_csv(
-    DATA_DIR / "X_test.csv",
-    index=False
-)
-
-
-# Save test targets
-y_margin_test.to_csv(
-    DATA_DIR / "y_test_margin.csv",
-    index=False
-)
-
-
-y_retained_test.to_csv(
-    DATA_DIR / "y_test_retained.csv",
-    index=False
-)
-
-
-y_party_test.to_csv(
-    DATA_DIR / "y_test_party.csv",
-    index=False
-)
-
-
-print(
-    "\nSaved training/testing datasets to:",
-    DATA_DIR
-)
-
-
-# =========================================================
-# STEP 11: TRAIN RANDOM FOREST MARGIN MODEL
-# =========================================================
-
-print("\n========================================")
-print("TRAINING MARGIN MODEL")
-print("========================================")
-
-
-rf_margin = RandomForestRegressor(
-    n_estimators=300,
-    max_depth=8,
-    random_state=42,
-    n_jobs=-1
-)
-
-
-rf_margin.fit(
-    X_train,
-    y_margin_train
-)
-
-
-margin_predictions = rf_margin.predict(
-    X_test
-)
-
-
-margin_r2 = r2_score(
-    y_margin_test,
-    margin_predictions
-)
-
-
-print(
-    "Margin R2:",
-    round(margin_r2, 4)
-)
-
-
-# =========================================================
-# STEP 12: TRAIN RETENTION MODEL
-# =========================================================
-
-print("\n========================================")
-print("TRAINING RETENTION MODEL")
-print("========================================")
-
-
-rf_retained = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=8,
-    random_state=42,
-    n_jobs=-1
-)
-
-
-rf_retained.fit(
-    X_train,
-    y_retained_train
-)
-
-
-retained_predictions = rf_retained.predict(
-    X_test
-)
-
-
-retained_accuracy = accuracy_score(
-    y_retained_test,
-    retained_predictions
-)
-
-
-print(
-    "Retained accuracy:",
-    round(retained_accuracy, 4)
-)
-
-
-# =========================================================
-# STEP 13: TRAIN WINNING PARTY MODEL
-# =========================================================
-
-print("\n========================================")
-print("TRAINING PARTY MODEL")
-print("========================================")
-
-
-rf_party = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=10,
-    random_state=42,
-    n_jobs=-1
-)
-
-
-rf_party.fit(
-    X_train,
-    y_party_train
-)
-
-
-party_predictions = rf_party.predict(
-    X_test
-)
-
-
-party_accuracy = accuracy_score(
-    y_party_test,
-    party_predictions
-)
-
-
-print(
-    "Party prediction accuracy:",
-    round(party_accuracy, 4)
-)
-
-
-print("\nParty Classification Report:")
-
-print(
-    classification_report(
-        y_party_test,
-        party_predictions
-    )
-)
-
-
-# =========================================================
-# STEP 14: SAVE TRAINED MODELS
-# =========================================================
-
-joblib.dump(
-    rf_margin,
-    MODEL_DIR / "rf_margin_model.pkl"
-)
-
-
-joblib.dump(
-    rf_retained,
-    MODEL_DIR / "rf_retained_model.pkl"
-)
-
-
-joblib.dump(
-    rf_party,
-    MODEL_DIR / "rf_party_model.pkl"
-)
-
-
-# =========================================================
-# STEP 15: SAVE STATE ENCODER AS JSON
-# =========================================================
-
-# LabelEncoder internally contains:
-#
-# state_encoder.classes_
-#
-# Example:
-#
-# ["Andhra Pradesh", "Assam", "Bihar", ...]
-#
-# We convert it into:
-#
-# {
-#     "Andhra Pradesh": 0,
-#     "Assam": 1,
-#     "Bihar": 2
-# }
-
-
-state_map = {
-    label: int(index)
-    for index, label
-    in enumerate(state_encoder.classes_)
-}
-
-
-with open(
-    MODEL_DIR / "state_encoder.json",
-    "w"
-) as f:
-
-    json.dump(
-        state_map,
-        f,
-        indent=2
+    # =====================================================
+    # PREDICTION HOVER DATA
+    # =====================================================
+
+    if (
+        prediction_df is not None
+        and "Predicted Winner" in map_df.columns
+    ):
+
+        hover_template = (
+
+            "<b>%{customdata[0]}</b><br>"
+            "State: %{customdata[1]}<br>"
+            "Winner: %{customdata[2]}<br>"
+            "<br>"
+            "<b>Historical</b><br>"
+            "2011: %{customdata[3]}<br>"
+            "2016: %{customdata[4]}<br>"
+            "2021: %{customdata[5]}<br>"
+            "<br>"
+            "<b>Turnout</b><br>"
+            "2011: %{customdata[6]:.2f}%<br>"
+            "2016: %{customdata[7]:.2f}%<br>"
+            "2021: %{customdata[8]:.2f}%<br>"
+        )
+
+        if "Predicted Margin" in map_df.columns:
+
+            hover_template += (
+                "<br>"
+                "<b>Prediction</b><br>"
+                "Winner: %{customdata[9]}<br>"
+                "Margin: %{customdata[10]:.2f}%<br>"
+            )
+
+        fig.update_traces(
+            marker=dict(
+                size=10
+            )
+        )
+
+    else:
+
+        fig.update_traces(
+            marker=dict(
+                size=10
+            )
+        )
+
+    # =====================================================
+    # LAYOUT
+    # =====================================================
+
+    fig.update_layout(
+
+        height=650,
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=50,
+            b=80
+        ),
+
+        xaxis_title="State",
+
+        yaxis_title="Constituency",
+
+        font=dict(
+            size=10
+        ),
+
+        legend=dict(
+            orientation="h",
+            y=-0.15,
+            x=0
+        )
     )
 
-
-# =========================================================
-# STEP 16: SAVE PARTY ENCODER AS JSON
-# =========================================================
-
-party_map = {
-    label: int(index)
-    for index, label
-    in enumerate(party_encoder.classes_)
-}
-
-
-with open(
-    MODEL_DIR / "party_encoder.json",
-    "w"
-) as f:
-
-    json.dump(
-        party_map,
-        f,
-        indent=2
+    fig.update_xaxes(
+        tickangle=-30
     )
 
+    # =====================================================
+    # DISPLAY
+    # =====================================================
 
-# =========================================================
-# STEP 17: SAVE MERGED DATASET
-# =========================================================
+    st.plotly_chart(
 
-# This is useful for inspection and debugging.
+        fig,
 
-merged.to_csv(
-    DATA_DIR / "merged_election_data.csv",
-    index=False
-)
+        width="stretch",
 
+        config={
+            "displayModeBar": False
+        }
+    )
 
-# =========================================================
-# FINAL OUTPUT
-# =========================================================
+    # =====================================================
+    # SUMMARY
+    # =====================================================
 
-print("\n========================================")
-print("MODEL TRAINING COMPLETED")
-print("========================================")
+    st.markdown(
+        f"**{map_title} — {len(map_df)} constituencies**"
+    )
 
-print("\nModels saved:")
+    # =====================================================
+    # PARTY SUMMARY
+    # =====================================================
 
-print(
-    MODEL_DIR / "rf_margin_model.pkl"
-)
+    summary = (
 
-print(
-    MODEL_DIR / "rf_retained_model.pkl"
-)
+        map_df["Winner"]
 
-print(
-    MODEL_DIR / "rf_party_model.pkl"
-)
+        .value_counts()
 
-print("\nEncoders saved:")
+        .reset_index()
+    )
 
-print(
-    MODEL_DIR / "state_encoder.json"
-)
+    summary.columns = [
+        "Party",
+        "Seats"
+    ]
 
-print(
-    MODEL_DIR / "party_encoder.json"
-)
+    col1, col2 = st.columns(2)
 
-print("\nMerged dataset saved:")
+    with col1:
 
-print(
-    DATA_DIR / "merged_election_data.csv"
-)
+        st.dataframe(
 
-print("\nTraining completed successfully.")
+            summary,
+
+            width="stretch",
+
+            hide_index=True
+        )
+
+    with col2:
+
+        turnout_summary = pd.DataFrame({
+
+            "Election": [
+                "2011",
+                "2016",
+                "2021"
+            ],
+
+            "Average Turnout": [
+
+                map_df[
+                    "turnout_2011"
+                ].mean(),
+
+                map_df[
+                    "turnout_2016"
+                ].mean(),
+
+                map_df[
+                    "turnout_2021"
+                ].mean()
+            ]
+        })
+
+        if prediction_df is not None:
+
+            if "new_turnout_2021" in map_df.columns:
+
+                turnout_summary.loc[
+                    len(turnout_summary)
+                ] = [
+
+                    "Scenario",
+
+                    map_df[
+                        "new_turnout_2021"
+                    ].mean()
+                ]
+
+        turnout_summary[
+            "Average Turnout"
+        ] = turnout_summary[
+            "Average Turnout"
+        ].round(2)
+
+        st.dataframe(
+
+            turnout_summary,
+
+            width="stretch",
+
+            hide_index=True
+        )
