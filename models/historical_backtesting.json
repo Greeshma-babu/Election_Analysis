@@ -1,0 +1,9 @@
+{
+  "backtest_period": "2011-2016 -> 2021",
+  "training_period": "2011-2016",
+  "validation_period": "2021",
+  "validation_rows": 1000,
+  "margin_r2": 0.978491277932968,
+  "retention_accuracy": 0.949,
+  "party_accuracy": 0.701
+}
