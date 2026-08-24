@@ -21,6 +21,13 @@ MODEL_DIR = BASE_DIR / "models"
 # =========================================================
 # MODEL FEATURES
 # =========================================================
+#
+# IMPORTANT:
+# These MUST match the features used by election_model.py
+# during model training.
+#
+# Order is also important.
+# =========================================================
 
 FEATURE_COLS = [
     "state_encoded",
@@ -135,33 +142,30 @@ class ElectionCharts:
     def __init__(self, df):
 
         # -------------------------------------------------
-        # IMPORTANT
+        # Normalize incoming data.
         #
-        # The application may pass either:
+        # The application may provide:
         #
         # 1. Long format:
-        #
-        # constituency_id
-        # state
-        # demographic
-        # result
-        # voter_turnout_pct
-        # margin_of_victory_pct
-        # swing_factor_pct
-        # election_year
+        #    constituency_id
+        #    state
+        #    demographic
+        #    result
+        #    voter_turnout_pct
+        #    margin_of_victory_pct
+        #    swing_factor_pct
+        #    election_year
         #
         # OR
         #
-        # 2. Already merged format:
+        # 2. Wide / merged format:
+        #    result_2011
+        #    result_2016
+        #    result_2021
+        #    turnout_2011
+        #    turnout_2016
+        #    turnout_2021
         #
-        # result_2011
-        # result_2016
-        # result_2021
-        # turnout_2011
-        # turnout_2016
-        # turnout_2021
-        #
-        # Normalize everything here.
         # -------------------------------------------------
 
         self.df = self._prepare_election_data(df)
@@ -202,13 +206,16 @@ class ElectionCharts:
             and "constituency_id" in data.columns
         )
 
+        # -------------------------------------------------
+        # Already wide / merged
+        # -------------------------------------------------
+
         if not long_format:
 
-            # Already merged / wide format
             return self._clean_wide_data(data)
 
         # -------------------------------------------------
-        # Clean year
+        # Clean election year
         # -------------------------------------------------
 
         data["election_year"] = pd.to_numeric(
@@ -261,23 +268,7 @@ class ElectionCharts:
                 )
 
         # -------------------------------------------------
-        # Keep useful base columns
-        # -------------------------------------------------
-
-        base_columns = [
-            "constituency_id",
-            "state",
-            "demographic"
-        ]
-
-        base_columns = [
-            column
-            for column in base_columns
-            if column in data.columns
-        ]
-
-        # -------------------------------------------------
-        # Create yearly wide datasets
+        # Create yearly frames
         # -------------------------------------------------
 
         yearly_frames = []
@@ -289,6 +280,7 @@ class ElectionCharts:
             ].copy()
 
             if year_df.empty:
+
                 continue
 
             # -------------------------------------------------
@@ -304,27 +296,42 @@ class ElectionCharts:
             # -------------------------------------------------
 
             rename_map = {
-                "result": f"result_{year}",
-                "voter_turnout_pct": f"turnout_{year}",
-                "margin_of_victory_pct": f"margin_{year}",
-                "swing_factor_pct": f"swing_{year}"
+
+                "result":
+                    f"result_{year}",
+
+                "voter_turnout_pct":
+                    f"turnout_{year}",
+
+                "margin_of_victory_pct":
+                    f"margin_{year}",
+
+                "swing_factor_pct":
+                    f"swing_{year}"
             }
 
             year_df = year_df.rename(
                 columns=rename_map
             )
 
+            # -------------------------------------------------
+            # Keep useful columns
+            # -------------------------------------------------
+
             keep_columns = [
                 "constituency_id"
             ]
 
             for column in [
+
                 "state",
                 "demographic",
+
                 f"result_{year}",
                 f"turnout_{year}",
                 f"margin_{year}",
                 f"swing_{year}"
+
             ]:
 
                 if column in year_df.columns:
@@ -355,7 +362,11 @@ class ElectionCharts:
 
         for next_df in yearly_frames[1:]:
 
-            # Do not duplicate state/demographic
+            # -------------------------------------------------
+            # State/demographic already exist from first
+            # dataset.
+            # -------------------------------------------------
+
             duplicate_base = [
                 column
                 for column in [
@@ -377,11 +388,13 @@ class ElectionCharts:
             )
 
         # -------------------------------------------------
-        # If state/demographic missing from first year,
-        # recover them from original data.
+        # Recover state if missing
         # -------------------------------------------------
 
-        if "state" not in merged.columns:
+        if (
+            "state" not in merged.columns
+            and "state" in data.columns
+        ):
 
             state_lookup = (
                 data[
@@ -401,7 +414,14 @@ class ElectionCharts:
                 how="left"
             )
 
-        if "demographic" not in merged.columns:
+        # -------------------------------------------------
+        # Recover demographic if missing
+        # -------------------------------------------------
+
+        if (
+            "demographic" not in merged.columns
+            and "demographic" in data.columns
+        ):
 
             demographic_lookup = (
                 data[
@@ -422,7 +442,7 @@ class ElectionCharts:
             )
 
         # -------------------------------------------------
-        # Clean final data
+        # Clean final merged data
         # -------------------------------------------------
 
         merged = self._clean_wide_data(
@@ -460,35 +480,37 @@ class ElectionCharts:
             )
 
         # -------------------------------------------------
-        # Numeric election columns
+        # Alternate column names
         # -------------------------------------------------
 
-        numeric_columns = [
-            "turnout_2011",
-            "turnout_2016",
-            "turnout_2021",
-            "margin_2011",
-            "margin_2016",
-            "margin_2021",
-            "swing_2011",
-            "swing_2016",
-            "swing_2021"
-        ]
-
-        # Support alternate original column names too
-
         alternate_map = {
-            "voter_turnout_2011_pct": "turnout_2011",
-            "voter_turnout_2016_pct": "turnout_2016",
-            "voter_turnout_2021_pct": "turnout_2021",
 
-            "margin_of_victory_2011_pct": "margin_2011",
-            "margin_of_victory_2016_pct": "margin_2016",
-            "margin_of_victory_2021_pct": "margin_2021",
+            "voter_turnout_2011_pct":
+                "turnout_2011",
 
-            "swing_factor_2011_pct": "swing_2011",
-            "swing_factor_2016_pct": "swing_2016",
-            "swing_factor_2021_pct": "swing_2021"
+            "voter_turnout_2016_pct":
+                "turnout_2016",
+
+            "voter_turnout_2021_pct":
+                "turnout_2021",
+
+            "margin_of_victory_2011_pct":
+                "margin_2011",
+
+            "margin_of_victory_2016_pct":
+                "margin_2016",
+
+            "margin_of_victory_2021_pct":
+                "margin_2021",
+
+            "swing_factor_2011_pct":
+                "swing_2011",
+
+            "swing_factor_2016_pct":
+                "swing_2016",
+
+            "swing_factor_2021_pct":
+                "swing_2021"
         }
 
         for old_column, new_column in alternate_map.items():
@@ -501,6 +523,25 @@ class ElectionCharts:
                 data[new_column] = data[
                     old_column
                 ]
+
+        # -------------------------------------------------
+        # Numeric election columns
+        # -------------------------------------------------
+
+        numeric_columns = [
+
+            "turnout_2011",
+            "turnout_2016",
+            "turnout_2021",
+
+            "margin_2011",
+            "margin_2016",
+            "margin_2021",
+
+            "swing_2011",
+            "swing_2016",
+            "swing_2021"
+        ]
 
         for column in numeric_columns:
 
@@ -535,47 +576,62 @@ class ElectionCharts:
             return
 
         # -------------------------------------------------
-        # Check model files
+        # Required model files
         # -------------------------------------------------
 
         required_models = [
+
             "rf_margin_model.pkl",
             "rf_retained_model.pkl",
             "rf_party_model.pkl"
         ]
 
         missing_models = [
+
             filename
+
             for filename in required_models
-            if not (MODEL_DIR / filename).exists()
+
+            if not (
+                MODEL_DIR / filename
+            ).exists()
         ]
 
         if missing_models:
 
             raise FileNotFoundError(
+
                 "Missing model file(s): "
                 + ", ".join(missing_models)
                 + f"\nExpected location: {MODEL_DIR}"
             )
 
         # -------------------------------------------------
-        # Load models
+        # Load margin model
         # -------------------------------------------------
 
         self.rf_margin_model = joblib.load(
             MODEL_DIR / "rf_margin_model.pkl"
         )
 
+        # -------------------------------------------------
+        # Load retention model
+        # -------------------------------------------------
+
         self.rf_retained_model = joblib.load(
             MODEL_DIR / "rf_retained_model.pkl"
         )
+
+        # -------------------------------------------------
+        # Load party model
+        # -------------------------------------------------
 
         self.rf_party_model = joblib.load(
             MODEL_DIR / "rf_party_model.pkl"
         )
 
         # -------------------------------------------------
-        # State encoder
+        # Load state encoder JSON
         # -------------------------------------------------
 
         state_encoder_file = (
@@ -597,7 +653,20 @@ class ElectionCharts:
             self.state_map = json.load(f)
 
         # -------------------------------------------------
-        # Party encoder
+        # JSON values may be numbers represented as int.
+        # Convert explicitly.
+        # -------------------------------------------------
+
+        self.state_map = {
+
+            str(key): int(value)
+
+            for key, value
+            in self.state_map.items()
+        }
+
+        # -------------------------------------------------
+        # Load party encoder JSON
         # -------------------------------------------------
 
         party_encoder_file = (
@@ -618,6 +687,14 @@ class ElectionCharts:
 
             self.party_map = json.load(f)
 
+        self.party_map = {
+
+            str(key): int(value)
+
+            for key, value
+            in self.party_map.items()
+        }
+
         self._models_loaded = True
 
 
@@ -632,45 +709,52 @@ class ElectionCharts:
         df = self.df.copy()
 
         # -------------------------------------------------
-        # Required base columns
+        # Required columns
         # -------------------------------------------------
 
         required_base = [
+
             "state",
             "demographic",
             "result_2016",
+
             "turnout_2016",
             "turnout_2021",
+
             "margin_2016",
             "swing_2016"
         ]
 
         missing_base = [
+
             column
+
             for column in required_base
+
             if column not in df.columns
         ]
 
         if missing_base:
 
             raise ValueError(
+
                 "Cannot build ML features. "
                 "Missing columns: "
                 + ", ".join(missing_base)
             )
 
-        # -------------------------------------------------
-        # DEMOGRAPHIC
-        # -------------------------------------------------
+        # =================================================
+        # DEMOGRAPHIC ENCODING
+        # =================================================
 
-        if "demographic_encoded" not in df.columns:
+        df["demographic_encoded"] = (
 
-            df["demographic_encoded"] = (
-                df["demographic"]
-                .map(DEMOGRAPHIC_MAP)
-            )
+            df["demographic"]
+            .map(DEMOGRAPHIC_MAP)
+        )
 
         unknown_demographic = (
+
             df.loc[
                 df["demographic_encoded"].isna(),
                 "demographic"
@@ -683,26 +767,31 @@ class ElectionCharts:
         if unknown_demographic:
 
             raise ValueError(
+
                 "Unknown demographic value(s): "
                 + str(unknown_demographic)
                 + ". Expected: "
-                + str(list(DEMOGRAPHIC_MAP.keys()))
+                + str(
+                    list(
+                        DEMOGRAPHIC_MAP.keys()
+                    )
+                )
             )
 
-        # -------------------------------------------------
-        # STATE
-        # -------------------------------------------------
+        # =================================================
+        # STATE ENCODING
+        # =================================================
 
-        if "state_encoded" not in df.columns:
+        df["state_encoded"] = (
 
-            df["state_encoded"] = (
-                df["state"]
-                .map(self.state_map)
-            )
+            df["state"]
+            .map(self.state_map)
+        )
 
         if df["state_encoded"].isnull().any():
 
             unknown = (
+
                 df.loc[
                     df["state_encoded"].isnull(),
                     "state"
@@ -713,24 +802,25 @@ class ElectionCharts:
             )
 
             raise ValueError(
+
                 "Unknown state(s) not seen during training: "
                 + str(unknown)
             )
 
-        # -------------------------------------------------
-        # PARTY
-        # -------------------------------------------------
+        # =================================================
+        # PARTY ENCODING
+        # =================================================
 
-        if "result_2016_encoded" not in df.columns:
+        df["result_2016_encoded"] = (
 
-            df["result_2016_encoded"] = (
-                df["result_2016"]
-                .map(self.party_map)
-            )
+            df["result_2016"]
+            .map(self.party_map)
+        )
 
         if df["result_2016_encoded"].isnull().any():
 
             unknown = (
+
                 df.loc[
                     df["result_2016_encoded"].isnull(),
                     "result_2016"
@@ -741,22 +831,24 @@ class ElectionCharts:
             )
 
             raise ValueError(
+
                 "Unknown party name(s) not seen during training: "
                 + str(unknown)
             )
 
-        # -------------------------------------------------
+        # =================================================
         # TURNOUT CHANGE
-        # -------------------------------------------------
+        # =================================================
 
         df["turnout_change_21"] = (
+
             df["turnout_2021"]
             - df["turnout_2016"]
         )
 
-        # -------------------------------------------------
-        # Numeric conversion
-        # -------------------------------------------------
+        # =================================================
+        # NUMERIC CONVERSION
+        # =================================================
 
         for column in FEATURE_COLS:
 
@@ -765,17 +857,21 @@ class ElectionCharts:
                 errors="coerce"
             )
 
-        # -------------------------------------------------
-        # Missing feature values
-        # -------------------------------------------------
+        # =================================================
+        # CHECK MISSING FEATURES
+        # =================================================
 
         missing_values = (
-            df[FEATURE_COLS]
+
+            df[
+                FEATURE_COLS
+            ]
             .isnull()
             .sum()
         )
 
         missing_features = (
+
             missing_values[
                 missing_values > 0
             ]
@@ -784,6 +880,7 @@ class ElectionCharts:
         if not missing_features.empty:
 
             raise ValueError(
+
                 "Missing/invalid values in ML features:\n"
                 + str(missing_features)
             )
@@ -792,13 +889,15 @@ class ElectionCharts:
 
 
     # =====================================================
-    # GET 2011 TURNOUT
+    # GET 2011 TURNOUT COLUMN
     # =====================================================
 
     def _get_turnout_2011_column(self):
 
         possible_columns = [
+
             "turnout_2011",
+
             "voter_turnout_2011_pct"
         ]
 
@@ -812,12 +911,13 @@ class ElectionCharts:
 
 
     # =====================================================
-    # GET LATITUDE
+    # GET LATITUDE COLUMN
     # =====================================================
 
     def _get_latitude_column(self):
 
         possible_columns = [
+
             "latitude",
             "lat",
             "Latitude",
@@ -834,12 +934,13 @@ class ElectionCharts:
 
 
     # =====================================================
-    # GET LONGITUDE
+    # GET LONGITUDE COLUMN
     # =====================================================
 
     def _get_longitude_column(self):
 
         possible_columns = [
+
             "longitude",
             "lon",
             "lng",
@@ -867,52 +968,49 @@ class ElectionCharts:
         )
 
         # -------------------------------------------------
-        # IMPORTANT FIX
-        #
-        # DO NOT call _ensure_features() here.
-        #
-        # This chart only needs historical result columns.
-        # It does NOT need turnout_2011 or ML features.
+        # Historical chart does not require ML models.
         # -------------------------------------------------
 
         required_columns = [
+
             "result_2011",
             "result_2016",
             "result_2021"
         ]
 
         missing = [
+
             column
+
             for column in required_columns
+
             if column not in self.df.columns
         ]
 
         if missing:
 
             st.error(
+
                 "Historical election result columns are missing: "
                 + ", ".join(missing)
-            )
-
-            st.info(
-                "The application expects 2011, 2016 and 2021 "
-                "CSV files with the columns: result, election_year, "
-                "constituency_id."
             )
 
             return
 
         # -------------------------------------------------
-        # YEAR SELECTOR
+        # Election year
         # -------------------------------------------------
 
         year = st.selectbox(
+
             "Election Year",
+
             [
                 "2011",
                 "2016",
                 "2021"
             ],
+
             key="party_year"
         )
 
@@ -921,38 +1019,56 @@ class ElectionCharts:
         )
 
         # -------------------------------------------------
-        # COUNT SEATS
+        # Count seats
         # -------------------------------------------------
 
         party_counts = (
-            self.df[result_column]
+
+            self.df[
+                result_column
+            ]
+
             .dropna()
+
             .astype(str)
+
             .str.strip()
+
             .value_counts()
+
             .reset_index()
         )
 
         party_counts.columns = [
+
             "Party",
             "Seats"
         ]
 
         # -------------------------------------------------
-        # BAR CHART
+        # Bar chart
         # -------------------------------------------------
 
         fig = px.bar(
+
             party_counts,
+
             x="Party",
+
             y="Seats",
+
             color="Party",
+
             text="Seats"
         )
 
         fig.update_traces(
+
             textposition="outside",
-            textfont=dict(size=10)
+
+            textfont=dict(
+                size=10
+            )
         )
 
         fig.update_layout(
@@ -967,11 +1083,15 @@ class ElectionCharts:
             ),
 
             xaxis_title=None,
+
             yaxis_title=None,
 
             legend=dict(
+
                 orientation="h",
+
                 y=-0.25,
+
                 x=0
             ),
 
@@ -981,8 +1101,11 @@ class ElectionCharts:
         )
 
         st.plotly_chart(
+
             fig,
+
             width="stretch",
+
             config={
                 "displayModeBar": False
             }
@@ -990,7 +1113,7 @@ class ElectionCharts:
 
 
     # =====================================================
-    # TURNOUT SCENARIO
+    # TURNOUT SCENARIO SIMULATOR
     # =====================================================
 
     def plot_turnout_scenario(self):
@@ -1004,7 +1127,7 @@ class ElectionCharts:
         )
 
         # -------------------------------------------------
-        # ONLY HERE DO WE NEED ML FEATURES
+        # Prepare ML features
         # -------------------------------------------------
 
         try:
@@ -1030,7 +1153,10 @@ class ElectionCharts:
         with control_left:
 
             all_states = sorted(
-                self.df["state"]
+
+                self.df[
+                    "state"
+                ]
                 .dropna()
                 .unique()
                 .tolist()
@@ -1073,7 +1199,7 @@ class ElectionCharts:
             return
 
         # =================================================
-        # BASELINE
+        # BASELINE FEATURES
         # =================================================
 
         baseline = self.df[
@@ -1081,109 +1207,137 @@ class ElectionCharts:
         ].copy()
 
         # =================================================
-        # SCENARIO
+        # SCENARIO FEATURES
         # =================================================
 
         scenario = baseline.copy()
 
         scenario["turnout_2021"] = (
 
-            scenario["turnout_2021"]
+            scenario[
+                "turnout_2021"
+            ]
             + turnout_delta
         )
 
-        # Keep turnout realistic
         scenario["turnout_2021"] = (
-            scenario["turnout_2021"]
+
+            scenario[
+                "turnout_2021"
+            ]
             .clip(0, 100)
         )
 
         scenario["turnout_change_21"] = (
 
-            scenario["turnout_2021"]
-
-            - scenario["turnout_2016"]
+            scenario[
+                "turnout_2021"
+            ]
+            - scenario[
+                "turnout_2016"
+            ]
         )
 
         # =================================================
-        # PREDICTIONS
+        # RESULT DATAFRAME
         # =================================================
 
         result = self.df.copy()
 
-        # -------------------------------------------------
-        # MARGIN
-        # -------------------------------------------------
+        # =================================================
+        # MARGIN PREDICTION
+        # =================================================
 
-        result["baseline_pred_margin"] = (
+        result[
+            "baseline_pred_margin"
+        ] = (
 
             self.rf_margin_model.predict(
                 baseline
             )
         )
 
-        result["scenario_pred_margin"] = (
+        result[
+            "scenario_pred_margin"
+        ] = (
 
             self.rf_margin_model.predict(
                 scenario
             )
         )
 
-        # -------------------------------------------------
-        # RETENTION
-        # -------------------------------------------------
+        # =================================================
+        # RETENTION PREDICTION
+        # =================================================
 
-        result["baseline_pred_retained"] = (
+        result[
+            "baseline_pred_retained"
+        ] = (
 
             self.rf_retained_model.predict(
                 baseline
             )
         )
 
-        result["scenario_pred_retained"] = (
+        result[
+            "scenario_pred_retained"
+        ] = (
 
             self.rf_retained_model.predict(
                 scenario
             )
         )
 
-        # -------------------------------------------------
-        # PARTY
-        # -------------------------------------------------
+        # =================================================
+        # PARTY PREDICTION
+        # =================================================
 
-        result["baseline_pred_winner"] = (
+        result[
+            "baseline_pred_winner"
+        ] = (
 
             self.rf_party_model.predict(
                 baseline
             )
         )
 
-        result["scenario_pred_winner"] = (
+        result[
+            "scenario_pred_winner"
+        ] = (
 
             self.rf_party_model.predict(
                 scenario
             )
         )
 
-        # -------------------------------------------------
-        # WINNER CHANGED
-        # -------------------------------------------------
+        # =================================================
+        # WINNER CHANGE
+        # =================================================
 
-        result["winner_changed"] = (
+        result[
+            "winner_changed"
+        ] = (
 
-            result["baseline_pred_winner"]
-
-            != result["scenario_pred_winner"]
+            result[
+                "baseline_pred_winner"
+            ]
+            !=
+            result[
+                "scenario_pred_winner"
+            ]
         )
 
-        # -------------------------------------------------
+        # =================================================
         # NEW TURNOUT
-        # -------------------------------------------------
+        # =================================================
 
-        result["new_turnout_2021"] = (
+        result[
+            "new_turnout_2021"
+        ] = (
 
-            result["turnout_2021"]
-
+            result[
+                "turnout_2021"
+            ]
             + turnout_delta
         ).clip(0, 100)
 
@@ -1193,34 +1347,42 @@ class ElectionCharts:
 
         result[
             "baseline_pred_retained_label"
-        ] = result[
-            "baseline_pred_retained"
-        ].map({
+        ] = (
 
-            1: "Retained",
-
-            0: "Lost"
-        })
+            result[
+                "baseline_pred_retained"
+            ]
+            .map({
+                1: "Retained",
+                0: "Lost"
+            })
+        )
 
         result[
             "scenario_pred_retained_label"
-        ] = result[
-            "scenario_pred_retained"
-        ].map({
+        ] = (
 
-            1: "Retained",
-
-            0: "Lost"
-        })
+            result[
+                "scenario_pred_retained"
+            ]
+            .map({
+                1: "Retained",
+                0: "Lost"
+            })
+        )
 
         # =================================================
         # FILTER STATES
         # =================================================
 
         result_filtered = result[
-            result["state"].isin(
+
+            result[
+                "state"
+            ].isin(
                 selected_states
             )
+
         ].copy()
 
         if result_filtered.empty:
@@ -1236,32 +1398,41 @@ class ElectionCharts:
         # =================================================
 
         avg_before = (
+
             result_filtered[
                 "baseline_pred_margin"
-            ].mean()
+            ]
+            .mean()
         )
 
         avg_after = (
+
             result_filtered[
                 "scenario_pred_margin"
-            ].mean()
+            ]
+            .mean()
         )
 
         margin_change = (
+
             avg_after
             - avg_before
         )
 
         flips = int(
+
             result_filtered[
                 "winner_changed"
-            ].sum()
+            ]
+            .sum()
         )
 
         avg_turnout = (
+
             result_filtered[
                 "new_turnout_2021"
-            ].mean()
+            ]
+            .mean()
         )
 
         # =================================================
@@ -1273,30 +1444,40 @@ class ElectionCharts:
         with m1:
 
             st.metric(
+
                 "Margin Before",
+
                 f"{avg_before:.2f}%"
             )
 
         with m2:
 
             st.metric(
+
                 "Margin After",
+
                 f"{avg_after:.2f}%",
+
                 delta=f"{margin_change:+.2f}%"
             )
 
         with m3:
 
             st.metric(
+
                 "Party Flips",
+
                 flips
             )
 
         with m4:
 
             st.metric(
+
                 "New Avg Turnout",
+
                 f"{avg_turnout:.2f}%",
+
                 delta=f"{turnout_delta:+d}%"
             )
 
@@ -1330,6 +1511,7 @@ class ElectionCharts:
             )
 
             retained_counts.columns = [
+
                 "Status",
                 "Seats"
             ]
@@ -1344,7 +1526,8 @@ class ElectionCharts:
 
                 color="Status",
 
-                color_discrete_map=RETAINED_COLORS,
+                color_discrete_map=
+                    RETAINED_COLORS,
 
                 hole=0.50
             )
@@ -1368,10 +1551,16 @@ class ElectionCharts:
                 ),
 
                 legend=dict(
+
                     orientation="h",
+
                     y=-0.05,
+
                     x=0,
-                    font=dict(size=9)
+
+                    font=dict(
+                        size=9
+                    )
                 )
             )
 
@@ -1412,19 +1601,26 @@ class ElectionCharts:
             )
 
             changed_counts.columns = [
+
                 "Changed",
                 "Seats"
             ]
 
-            changed_counts["Changed"] = (
+            changed_counts[
+                "Changed"
+            ] = (
 
-                changed_counts["Changed"]
+                changed_counts[
+                    "Changed"
+                ]
 
                 .map({
 
-                    True: "Party Flips",
+                    True:
+                        "Party Flips",
 
-                    False: "Same Party"
+                    False:
+                        "Same Party"
                 })
             )
 
@@ -1438,7 +1634,8 @@ class ElectionCharts:
 
                 color="Changed",
 
-                color_discrete_map=FLIP_COLORS,
+                color_discrete_map=
+                    FLIP_COLORS,
 
                 hole=0.50
             )
@@ -1462,10 +1659,16 @@ class ElectionCharts:
                 ),
 
                 legend=dict(
+
                     orientation="h",
+
                     y=-0.05,
+
                     x=0,
-                    font=dict(size=9)
+
+                    font=dict(
+                        size=9
+                    )
                 )
             )
 
@@ -1503,16 +1706,20 @@ class ElectionCharts:
             for state in selected_states:
 
                 state_df = result_filtered[
-                    result_filtered["state"] == state
+                    result_filtered[
+                        "state"
+                    ] == state
                 ]
 
                 if turnout_2011_col:
 
                     trend_rows.append({
 
-                        "State": state,
+                        "State":
+                            state,
 
-                        "Election": "2011",
+                        "Election":
+                            "2011",
 
                         "Turnout (%)":
                             state_df[
@@ -1522,9 +1729,11 @@ class ElectionCharts:
 
                 trend_rows.append({
 
-                    "State": state,
+                    "State":
+                        state,
 
-                    "Election": "2016",
+                    "Election":
+                        "2016",
 
                     "Turnout (%)":
                         state_df[
@@ -1534,9 +1743,11 @@ class ElectionCharts:
 
                 trend_rows.append({
 
-                    "State": state,
+                    "State":
+                        state,
 
-                    "Election": "2021",
+                    "Election":
+                        "2021",
 
                     "Turnout (%)":
                         state_df[
@@ -1546,9 +1757,11 @@ class ElectionCharts:
 
                 trend_rows.append({
 
-                    "State": state,
+                    "State":
+                        state,
 
-                    "Election": "Scenario",
+                    "Election":
+                        "Scenario",
 
                     "Turnout (%)":
                         state_df[
@@ -1560,66 +1773,90 @@ class ElectionCharts:
                 trend_rows
             )
 
-            fig_line = px.line(
+            if trend_df.empty:
 
-                trend_df,
-
-                x="Election",
-
-                y="Turnout (%)",
-
-                color="State",
-
-                markers=True
-            )
-
-            fig_line.update_traces(
-
-                line=dict(width=2),
-
-                marker=dict(size=6)
-            )
-
-            fig_line.update_layout(
-
-                height=220,
-
-                margin=dict(
-                    l=5,
-                    r=5,
-                    t=5,
-                    b=35
-                ),
-
-                xaxis_title=None,
-
-                yaxis_title="Turnout %",
-
-                font=dict(size=9),
-
-                xaxis=dict(
-                    tickangle=0,
-                    tickfont=dict(size=9)
-                ),
-
-                legend=dict(
-                    orientation="h",
-                    y=-0.25,
-                    x=0,
-                    font=dict(size=8)
+                st.info(
+                    "No turnout trend data available."
                 )
-            )
 
-            st.plotly_chart(
+            else:
 
-                fig_line,
+                fig_line = px.line(
 
-                width="stretch",
+                    trend_df,
 
-                config={
-                    "displayModeBar": False
-                }
-            )
+                    x="Election",
+
+                    y="Turnout (%)",
+
+                    color="State",
+
+                    markers=True
+                )
+
+                fig_line.update_traces(
+
+                    line=dict(
+                        width=2
+                    ),
+
+                    marker=dict(
+                        size=6
+                    )
+                )
+
+                fig_line.update_layout(
+
+                    height=220,
+
+                    margin=dict(
+                        l=5,
+                        r=5,
+                        t=5,
+                        b=35
+                    ),
+
+                    xaxis_title=None,
+
+                    yaxis_title="Turnout %",
+
+                    font=dict(
+                        size=9
+                    ),
+
+                    xaxis=dict(
+
+                        tickangle=0,
+
+                        tickfont=dict(
+                            size=9
+                        )
+                    ),
+
+                    legend=dict(
+
+                        orientation="h",
+
+                        y=-0.25,
+
+                        x=0,
+
+                        font=dict(
+                            size=8
+                        )
+                    )
+                )
+
+                st.plotly_chart(
+
+                    fig_line,
+
+                    width="stretch",
+
+                    config={
+                        "displayModeBar": False
+                    }
+                )
 
             st.caption(
                 "Average voter turnout across selected states."
@@ -1656,35 +1893,64 @@ class ElectionCharts:
         ]
 
         display_cols = [
+
             column
+
             for column in display_cols
+
             if column in result_filtered.columns
         ]
 
         display_df = (
+
             result_filtered[
                 display_cols
             ]
-            .round(2)
             .copy()
         )
 
-        display_df.columns = [
+        numeric_display_columns = [
 
-            "ID",
+            "baseline_pred_margin",
 
-            "State",
+            "scenario_pred_margin"
+        ]
 
-            "Margin Before %",
+        for column in numeric_display_columns:
 
-            "Margin After %",
+            if column in display_df.columns:
 
-            "Winner Before",
+                display_df[column] = display_df[
+                    column
+                ].round(2)
 
-            "Winner After",
+        rename_map = {
 
-            "Status After"
-        ][:len(display_df.columns)]
+            "constituency_id":
+                "ID",
+
+            "state":
+                "State",
+
+            "baseline_pred_margin":
+                "Margin Before %",
+
+            "scenario_pred_margin":
+                "Margin After %",
+
+            "baseline_pred_winner":
+                "Winner Before",
+
+            "scenario_pred_winner":
+                "Winner After",
+
+            "scenario_pred_retained_label":
+                "Status After"
+        }
+
+        display_df = display_df.rename(
+            columns=rename_map
+        )
 
         st.dataframe(
 
@@ -1695,4 +1961,882 @@ class ElectionCharts:
             height=260,
 
             hide_index=True
+        )
+
+        # -------------------------------------------------
+        # Return the result so that app.py can optionally
+        # use the prediction dataframe for another chart/map.
+        # -------------------------------------------------
+
+        return result_filtered
+
+
+    # =====================================================
+    # MERGED ELECTION MAP
+    # =====================================================
+
+    def plot_merged_election_map(
+        self,
+        prediction_df=None,
+        turnout_delta=0
+    ):
+
+        st.markdown(
+            "### 🗺️ Constituency Election Map"
+        )
+
+        st.caption(
+            "Merged view of constituency results for "
+            "2011, 2016, 2021 and the turnout-based prediction."
+        )
+
+        # =================================================
+        # REQUIRED COLUMNS
+        # =================================================
+
+        required_columns = [
+
+            "constituency_id",
+
+            "state",
+
+            "result_2011",
+            "result_2016",
+            "result_2021",
+
+            "turnout_2011",
+            "turnout_2016",
+            "turnout_2021"
+        ]
+
+        missing = [
+
+            column
+
+            for column in required_columns
+
+            if column not in self.df.columns
+        ]
+
+        if missing:
+
+            st.error(
+
+                "Required election columns are missing: "
+                + ", ".join(missing)
+            )
+
+            return
+
+        # =================================================
+        # MAP VIEW SELECTOR
+        # =================================================
+
+        map_year = st.selectbox(
+
+            "Map View",
+
+            [
+                "2011",
+                "2016",
+                "2021",
+                "New Prediction"
+            ],
+
+            key="merged_map_year"
+        )
+
+        # =================================================
+        # BASE DATA
+        # =================================================
+
+        map_df = self.df.copy()
+
+        # =================================================
+        # SELECT HISTORICAL YEAR
+        # =================================================
+
+        if map_year == "2011":
+
+            map_df["map_winner"] = (
+                map_df["result_2011"]
+            )
+
+            map_df["map_turnout"] = (
+                map_df["turnout_2011"]
+            )
+
+            map_title = (
+                "2011 Election Result"
+            )
+
+        elif map_year == "2016":
+
+            map_df["map_winner"] = (
+                map_df["result_2016"]
+            )
+
+            map_df["map_turnout"] = (
+                map_df["turnout_2016"]
+            )
+
+            map_title = (
+                "2016 Election Result"
+            )
+
+        elif map_year == "2021":
+
+            map_df["map_winner"] = (
+                map_df["result_2021"]
+            )
+
+            map_df["map_turnout"] = (
+                map_df["turnout_2021"]
+            )
+
+            map_title = (
+                "2021 Election Result"
+            )
+
+        # =================================================
+        # NEW PREDICTION
+        # =================================================
+
+        else:
+
+            if prediction_df is None:
+
+                st.info(
+                    "Run the Turnout Scenario Simulator "
+                    "to generate the new prediction."
+                )
+
+                return
+
+            map_df = prediction_df.copy()
+
+            if (
+                "scenario_pred_winner"
+                not in map_df.columns
+            ):
+
+                st.warning(
+                    "Prediction winner column is not available."
+                )
+
+                return
+
+            map_df["map_winner"] = (
+                map_df[
+                    "scenario_pred_winner"
+                ]
+            )
+
+            if (
+                "new_turnout_2021"
+                in map_df.columns
+            ):
+
+                map_df["map_turnout"] = (
+                    map_df[
+                        "new_turnout_2021"
+                    ]
+                )
+
+            else:
+
+                map_df["map_turnout"] = (
+                    map_df[
+                        "turnout_2021"
+                    ]
+                    + turnout_delta
+                ).clip(0, 100)
+
+            map_title = (
+
+                "New Prediction "
+                f"(Turnout {turnout_delta:+d}%)"
+            )
+
+        # =================================================
+        # DISPLAY LABELS
+        # =================================================
+
+        map_df["Constituency"] = (
+
+            map_df[
+                "constituency_id"
+            ]
+            .astype(str)
+        )
+
+        map_df["State"] = (
+
+            map_df[
+                "state"
+            ]
+            .astype(str)
+        )
+
+        map_df["Winner"] = (
+
+            map_df[
+                "map_winner"
+            ]
+            .astype(str)
+        )
+
+        # =================================================
+        # HISTORICAL INFORMATION
+        # =================================================
+
+        map_df["2011 Winner"] = (
+            map_df["result_2011"]
+        )
+
+        map_df["2016 Winner"] = (
+            map_df["result_2016"]
+        )
+
+        map_df["2021 Winner"] = (
+            map_df["result_2021"]
+        )
+
+        map_df["2011 Turnout"] = (
+            map_df["turnout_2011"]
+        )
+
+        map_df["2016 Turnout"] = (
+            map_df["turnout_2016"]
+        )
+
+        map_df["2021 Turnout"] = (
+            map_df["turnout_2021"]
+        )
+
+        # =================================================
+        # PREDICTION INFORMATION
+        # =================================================
+
+        if prediction_df is not None:
+
+            if (
+                "scenario_pred_winner"
+                in map_df.columns
+            ):
+
+                map_df[
+                    "Predicted Winner"
+                ] = map_df[
+                    "scenario_pred_winner"
+                ]
+
+            if (
+                "scenario_pred_margin"
+                in map_df.columns
+            ):
+
+                map_df[
+                    "Predicted Margin"
+                ] = map_df[
+                    "scenario_pred_margin"
+                ]
+
+            if (
+                "scenario_pred_retained_label"
+                in map_df.columns
+            ):
+
+                map_df[
+                    "Prediction Status"
+                ] = map_df[
+                    "scenario_pred_retained_label"
+                ]
+
+            if (
+                "new_turnout_2021"
+                in map_df.columns
+            ):
+
+                map_df[
+                    "Scenario Turnout"
+                ] = map_df[
+                    "new_turnout_2021"
+                ]
+
+        # =================================================
+        # PARTY COLORS
+        # =================================================
+
+        parties = sorted(
+
+            map_df[
+                "Winner"
+            ]
+            .dropna()
+            .astype(str)
+            .unique()
+            .tolist()
+        )
+
+        palette = [
+
+            "#E74C3C",
+            "#3498DB",
+            "#2ECC71",
+            "#F39C12",
+            "#9B59B6",
+            "#1ABC9C",
+            "#E67E22",
+            "#34495E",
+            "#D35400",
+            "#8E44AD",
+            "#C0392B",
+            "#16A085"
+        ]
+
+        party_colors = {
+
+            party:
+                palette[
+                    i % len(palette)
+                ]
+
+            for i, party
+            in enumerate(parties)
+        }
+
+        # =================================================
+        # COLOR COLUMN
+        # =================================================
+
+        map_df["Color"] = (
+
+            map_df[
+                "Winner"
+            ]
+            .map(party_colors)
+            .fillna("#7F8C8D")
+        )
+
+        # =================================================
+        # CREATE NON-GEOGRAPHIC CONSTITUENCY MAP
+        # =================================================
+        #
+        # IMPORTANT:
+        #
+        # This is intentionally NOT using latitude /
+        # longitude.
+        #
+        # Constituencies are displayed by State + ID.
+        #
+        # =================================================
+
+        fig = px.scatter(
+
+            map_df,
+
+            x="State",
+
+            y="Constituency",
+
+            color="Winner",
+
+            color_discrete_map=party_colors,
+
+            hover_name="Constituency",
+
+            hover_data={
+
+                "State": True,
+
+                "Winner": True,
+
+                "2011 Winner": True,
+
+                "2016 Winner": True,
+
+                "2021 Winner": True,
+
+                "2011 Turnout": ":.2f",
+
+                "2016 Turnout": ":.2f",
+
+                "2021 Turnout": ":.2f",
+
+                "Constituency": False
+            },
+
+            title=map_title
+        )
+
+        # =================================================
+        # PREDICTION HOVER
+        # =================================================
+
+        if (
+
+            prediction_df is not None
+
+            and "Predicted Winner"
+            in map_df.columns
+        ):
+
+            hover_template = (
+
+                "<b>%{customdata[0]}</b><br>"
+
+                "State: %{customdata[1]}<br>"
+
+                "Winner: %{customdata[2]}<br>"
+
+                "<br>"
+
+                "<b>Historical</b><br>"
+
+                "2011: %{customdata[3]}<br>"
+
+                "2016: %{customdata[4]}<br>"
+
+                "2021: %{customdata[5]}<br>"
+
+                "<br>"
+
+                "<b>Turnout</b><br>"
+
+                "2011: %{customdata[6]:.2f}%<br>"
+
+                "2016: %{customdata[7]:.2f}%<br>"
+
+                "2021: %{customdata[8]:.2f}%<br>"
+            )
+
+            if (
+                "Predicted Margin"
+                in map_df.columns
+            ):
+
+                hover_template += (
+
+                    "<br>"
+
+                    "<b>Prediction</b><br>"
+
+                    "Winner: %{customdata[9]}<br>"
+
+                    "Margin: %{customdata[10]:.2f}%<br>"
+                )
+
+            fig.update_traces(
+
+                customdata=map_df[
+
+                    [
+
+                        "Constituency",
+                        "State",
+                        "Winner",
+
+                        "2011 Winner",
+                        "2016 Winner",
+                        "2021 Winner",
+
+                        "2011 Turnout",
+                        "2016 Turnout",
+                        "2021 Turnout",
+
+                        "Predicted Winner",
+                        "Predicted Margin"
+                    ]
+
+                ].values,
+
+                hovertemplate=hover_template
+            )
+
+        else:
+
+            fig.update_traces(
+
+                marker=dict(
+                    size=10
+                )
+            )
+
+        # =================================================
+        # LAYOUT
+        # =================================================
+
+        fig.update_layout(
+
+            height=650,
+
+            margin=dict(
+
+                l=20,
+
+                r=20,
+
+                t=50,
+
+                b=80
+            ),
+
+            xaxis_title="State",
+
+            yaxis_title="Constituency",
+
+            font=dict(
+                size=10
+            ),
+
+            legend=dict(
+
+                orientation="h",
+
+                y=-0.15,
+
+                x=0
+            )
+        )
+
+        fig.update_xaxes(
+            tickangle=-30
+        )
+
+        # =================================================
+        # DISPLAY
+        # =================================================
+
+        st.plotly_chart(
+
+            fig,
+
+            width="stretch",
+
+            config={
+                "displayModeBar": False
+            }
+        )
+
+        # =================================================
+        # SUMMARY
+        # =================================================
+
+        st.markdown(
+
+            f"**{map_title} — "
+            f"{len(map_df)} constituencies**"
+        )
+
+        # =================================================
+        # PARTY SUMMARY
+        # =================================================
+
+        summary = (
+
+            map_df[
+                "Winner"
+            ]
+
+            .value_counts()
+
+            .reset_index()
+        )
+
+        summary.columns = [
+
+            "Party",
+            "Seats"
+        ]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.dataframe(
+
+                summary,
+
+                width="stretch",
+
+                hide_index=True
+            )
+
+        with col2:
+
+            turnout_values = [
+
+                map_df[
+                    "turnout_2011"
+                ].mean(),
+
+                map_df[
+                    "turnout_2016"
+                ].mean(),
+
+                map_df[
+                    "turnout_2021"
+                ].mean()
+            ]
+
+            turnout_summary = pd.DataFrame({
+
+                "Election": [
+
+                    "2011",
+                    "2016",
+                    "2021"
+                ],
+
+                "Average Turnout": (
+
+                    turnout_values
+                )
+            })
+
+            if (
+
+                prediction_df is not None
+
+                and "new_turnout_2021"
+                in map_df.columns
+            ):
+
+                turnout_summary.loc[
+                    len(turnout_summary)
+                ] = [
+
+                    "Scenario",
+
+                    map_df[
+                        "new_turnout_2021"
+                    ].mean()
+                ]
+
+            turnout_summary[
+                "Average Turnout"
+            ] = turnout_summary[
+                "Average Turnout"
+            ].round(2)
+
+            st.dataframe(
+
+                turnout_summary,
+
+                width="stretch",
+
+                hide_index=True
+            )
+
+
+    # =====================================================
+    # OPTIONAL FOLIUM MAP
+    # =====================================================
+    #
+    # This method is kept available if you later provide
+    # latitude/longitude data.
+    #
+    # It is NOT required by the current constituency map.
+    # =====================================================
+
+    def plot_geographic_map(self, prediction_df=None):
+
+        st.markdown(
+            "### 🌍 Geographic Election Map"
+        )
+
+        latitude_column = (
+            self._get_latitude_column()
+        )
+
+        longitude_column = (
+            self._get_longitude_column()
+        )
+
+        if (
+            latitude_column is None
+            or longitude_column is None
+        ):
+
+            st.info(
+
+                "Latitude and longitude columns are not "
+                "available. Geographic map is therefore "
+                "not displayed."
+            )
+
+            return
+
+        map_df = self.df.copy()
+
+        map_df[latitude_column] = pd.to_numeric(
+            map_df[latitude_column],
+            errors="coerce"
+        )
+
+        map_df[longitude_column] = pd.to_numeric(
+            map_df[longitude_column],
+            errors="coerce"
+        )
+
+        map_df = map_df.dropna(
+            subset=[
+                latitude_column,
+                longitude_column
+            ]
+        )
+
+        if map_df.empty:
+
+            st.warning(
+                "No valid latitude/longitude records available."
+            )
+
+            return
+
+        # -------------------------------------------------
+        # Determine winner
+        # -------------------------------------------------
+
+        if prediction_df is not None:
+
+            prediction_lookup = (
+
+                prediction_df[
+                    [
+                        "constituency_id",
+                        "scenario_pred_winner"
+                    ]
+                ]
+                .drop_duplicates(
+                    subset="constituency_id"
+                )
+            )
+
+            map_df = map_df.merge(
+
+                prediction_lookup,
+
+                on="constituency_id",
+
+                how="left"
+            )
+
+            map_df["Map Winner"] = (
+
+                map_df[
+                    "scenario_pred_winner"
+                ]
+                .fillna(
+                    map_df["result_2021"]
+                )
+            )
+
+        else:
+
+            map_df["Map Winner"] = (
+                map_df["result_2021"]
+            )
+
+        # -------------------------------------------------
+        # Center
+        # -------------------------------------------------
+
+        center_lat = map_df[
+            latitude_column
+        ].mean()
+
+        center_lon = map_df[
+            longitude_column
+        ].mean()
+
+        folium_map = folium.Map(
+
+            location=[
+                center_lat,
+                center_lon
+            ],
+
+            zoom_start=7
+        )
+
+        # -------------------------------------------------
+        # Markers
+        # -------------------------------------------------
+
+        for _, row in map_df.iterrows():
+
+            constituency = str(
+                row["constituency_id"]
+            )
+
+            state = str(
+                row.get(
+                    "state",
+                    ""
+                )
+            )
+
+            winner = str(
+                row["Map Winner"]
+            )
+
+            turnout = row.get(
+                "turnout_2021",
+                None
+            )
+
+            popup_text = (
+
+                f"<b>Constituency:</b> "
+                f"{constituency}<br>"
+
+                f"<b>State:</b> "
+                f"{state}<br>"
+
+                f"<b>Winner:</b> "
+                f"{winner}<br>"
+            )
+
+            if pd.notna(turnout):
+
+                popup_text += (
+
+                    f"<b>2021 Turnout:</b> "
+                    f"{float(turnout):.2f}%"
+                )
+
+            folium.CircleMarker(
+
+                location=[
+
+                    row[
+                        latitude_column
+                    ],
+
+                    row[
+                        longitude_column
+                    ]
+                ],
+
+                radius=6,
+
+                popup=folium.Popup(
+                    popup_text,
+                    max_width=300
+                ),
+
+                fill=True
+            ).add_to(
+                folium_map
+            )
+
+        st_folium(
+
+            folium_map,
+
+            width=None,
+
+            height=600
         )
