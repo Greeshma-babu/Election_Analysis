@@ -2,6 +2,8 @@ import pathlib
 import json
 import joblib
 
+import requests
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -16,6 +18,20 @@ from streamlit_folium import st_folium
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 MODEL_DIR = BASE_DIR / "models"
+
+
+# =========================================================
+# PREDICTION API
+# =========================================================
+#
+# The Streamlit app no longer loads the trained .pkl models
+# directly. Instead, it sends the feature rows to the
+# FastAPI prediction service and uses whatever comes back.
+#
+# =========================================================
+
+API_BASE_URL = "http://localhost:8000"
+PREDICT_ENDPOINT = f"{API_BASE_URL}/predict"
 
 
 # =========================================================
@@ -447,39 +463,14 @@ class ElectionCharts:
         if self._models_loaded:
             return
 
-        required_models = [
-            "rf_margin_model.pkl",
-            "rf_retained_model.pkl",
-            "rf_party_model.pkl"
-        ]
-
-        missing_models = [
-            filename
-            for filename in required_models
-            if not (
-                MODEL_DIR / filename
-            ).exists()
-        ]
-
-        if missing_models:
-
-            raise FileNotFoundError(
-                "Missing model file(s): "
-                + ", ".join(missing_models)
-                + f"\nExpected location: {MODEL_DIR}"
-            )
-
-        self.rf_margin_model = joblib.load(
-            MODEL_DIR / "rf_margin_model.pkl"
-        )
-
-        self.rf_retained_model = joblib.load(
-            MODEL_DIR / "rf_retained_model.pkl"
-        )
-
-        self.rf_party_model = joblib.load(
-            MODEL_DIR / "rf_party_model.pkl"
-        )
+        # ---------------------------------------------------
+        # NOTE: the trained .pkl models are NOT loaded here
+        # anymore. Predictions are now obtained by calling the
+        # FastAPI prediction service (see _call_prediction_api).
+        # Only the encoders are still needed locally, since they
+        # are used to build the feature row that gets sent to
+        # the API.
+        # ---------------------------------------------------
 
         state_encoder_file = (
             MODEL_DIR / "state_encoder.json"
@@ -530,6 +521,69 @@ class ElectionCharts:
         }
 
         self._models_loaded = True
+
+    # =====================================================
+    # CALL PREDICTION API
+    # =====================================================
+    #
+    # Sends feature rows to the FastAPI service and gets back
+    # margin / retained / party predictions. The trained models
+    # are never touched directly from Streamlit - only the API
+    # response is used.
+    #
+    # =====================================================
+
+    def _call_prediction_api(self, feature_df):
+
+        rows = (
+            feature_df[
+                FEATURE_COLS
+            ]
+            .values
+            .tolist()
+        )
+
+        try:
+
+            response = requests.post(
+                PREDICT_ENDPOINT,
+                json={
+                    "rows": rows
+                },
+                timeout=30
+            )
+
+            response.raise_for_status()
+
+        except requests.exceptions.RequestException as e:
+
+            raise RuntimeError(
+                "Unable to reach the prediction API at "
+                f"{PREDICT_ENDPOINT}: {e}"
+            )
+
+        payload = response.json()
+
+        required_keys = [
+            "margin",
+            "retained",
+            "party"
+        ]
+
+        missing_keys = [
+            key
+            for key in required_keys
+            if key not in payload
+        ]
+
+        if missing_keys:
+
+            raise RuntimeError(
+                "Prediction API response is missing key(s): "
+                + ", ".join(missing_keys)
+            )
+
+        return payload
 
     # =====================================================
     # HISTORICAL BACKTESTING
@@ -1106,53 +1160,54 @@ class ElectionCharts:
 
         result = self.df.copy()
 
-        result[
-            "baseline_pred_margin"
-        ] = (
-            self.rf_margin_model.predict(
+        # -------------------------------------------------
+        # Get predictions from the FastAPI service instead
+        # of predicting locally against the .pkl models.
+        # The scenario simulator only processes whatever the
+        # API hands back.
+        # -------------------------------------------------
+
+        try:
+
+            baseline_response = self._call_prediction_api(
                 baseline
             )
-        )
+
+            scenario_response = self._call_prediction_api(
+                scenario
+            )
+
+        except RuntimeError as e:
+
+            st.error(
+                str(e)
+            )
+
+            return
+
+        result[
+            "baseline_pred_margin"
+        ] = baseline_response["margin"]
 
         result[
             "scenario_pred_margin"
-        ] = (
-            self.rf_margin_model.predict(
-                scenario
-            )
-        )
+        ] = scenario_response["margin"]
 
         result[
             "baseline_pred_retained"
-        ] = (
-            self.rf_retained_model.predict(
-                baseline
-            )
-        )
+        ] = baseline_response["retained"]
 
         result[
             "scenario_pred_retained"
-        ] = (
-            self.rf_retained_model.predict(
-                scenario
-            )
-        )
+        ] = scenario_response["retained"]
 
         result[
             "baseline_pred_winner"
-        ] = (
-            self.rf_party_model.predict(
-                baseline
-            )
-        )
+        ] = baseline_response["party"]
 
         result[
             "scenario_pred_winner"
-        ] = (
-            self.rf_party_model.predict(
-                scenario
-            )
-        )
+        ] = scenario_response["party"]
 
         result[
             "winner_changed"
