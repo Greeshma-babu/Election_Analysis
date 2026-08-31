@@ -1,9 +1,7 @@
 import pathlib
 import json
-import joblib
 
 import requests
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -22,12 +20,6 @@ MODEL_DIR = BASE_DIR / "models"
 
 # =========================================================
 # PREDICTION API
-# =========================================================
-#
-# The Streamlit app no longer loads the trained .pkl models
-# directly. Instead, it sends the feature rows to the
-# FastAPI prediction service and uses whatever comes back.
-#
 # =========================================================
 
 API_BASE_URL = "http://localhost:8000"
@@ -69,7 +61,6 @@ RETAINED_COLORS = {
     "Retained": "#2ECC71",
     "Lost": "#E74C3C"
 }
-
 
 FLIP_COLORS = {
     "Party Flips": "#F39C12",
@@ -238,17 +229,10 @@ class ElectionCharts:
             )
 
             rename_map = {
-                "result":
-                    f"result_{year}",
-
-                "voter_turnout_pct":
-                    f"turnout_{year}",
-
-                "margin_of_victory_pct":
-                    f"margin_{year}",
-
-                "swing_factor_pct":
-                    f"swing_{year}"
+                "result": f"result_{year}",
+                "voter_turnout_pct": f"turnout_{year}",
+                "margin_of_victory_pct": f"margin_{year}",
+                "swing_factor_pct": f"swing_{year}"
             }
 
             year_df = year_df.rename(
@@ -455,22 +439,13 @@ class ElectionCharts:
         return data
 
     # =====================================================
-    # LOAD MODELS
+    # LOAD ENCODERS
     # =====================================================
 
     def _load_models(self):
 
         if self._models_loaded:
             return
-
-        # ---------------------------------------------------
-        # NOTE: the trained .pkl models are NOT loaded here
-        # anymore. Predictions are now obtained by calling the
-        # FastAPI prediction service (see _call_prediction_api).
-        # Only the encoders are still needed locally, since they
-        # are used to build the feature row that gets sent to
-        # the API.
-        # ---------------------------------------------------
 
         state_encoder_file = (
             MODEL_DIR / "state_encoder.json"
@@ -523,17 +498,23 @@ class ElectionCharts:
         self._models_loaded = True
 
     # =====================================================
-    # CALL PREDICTION API
-    # =====================================================
-    #
-    # Sends feature rows to the FastAPI service and gets back
-    # margin / retained / party predictions. The trained models
-    # are never touched directly from Streamlit - only the API
-    # response is used.
-    #
+    # CALL FASTAPI PREDICTION SERVICE
     # =====================================================
 
     def _call_prediction_api(self, feature_df):
+
+        missing_columns = [
+            column
+            for column in FEATURE_COLS
+            if column not in feature_df.columns
+        ]
+
+        if missing_columns:
+
+            raise RuntimeError(
+                "Prediction feature columns are missing: "
+                + ", ".join(missing_columns)
+            )
 
         rows = (
             feature_df[
@@ -562,7 +543,15 @@ class ElectionCharts:
                 f"{PREDICT_ENDPOINT}: {e}"
             )
 
-        payload = response.json()
+        try:
+
+            payload = response.json()
+
+        except ValueError:
+
+            raise RuntimeError(
+                "Prediction API returned an invalid JSON response."
+            )
 
         required_keys = [
             "margin",
@@ -582,6 +571,17 @@ class ElectionCharts:
                 "Prediction API response is missing key(s): "
                 + ", ".join(missing_keys)
             )
+
+        expected_length = len(feature_df)
+
+        for key in required_keys:
+
+            if len(payload[key]) != expected_length:
+
+                raise RuntimeError(
+                    f"Prediction API returned {len(payload[key])} "
+                    f"values for '{key}', expected {expected_length}."
+                )
 
         return payload
 
@@ -660,10 +660,6 @@ class ElectionCharts:
             )
         )
 
-        # -------------------------------------------------
-        # Metric cards
-        # -------------------------------------------------
-
         metric1, metric2, metric3 = st.columns(3)
 
         with metric1:
@@ -686,10 +682,6 @@ class ElectionCharts:
                 "Party Accuracy",
                 f"{party_accuracy * 100:.1f}%"
             )
-
-        # -------------------------------------------------
-        # Compact chart
-        # -------------------------------------------------
 
         backtest_chart_df = pd.DataFrame(
             {
@@ -753,8 +745,10 @@ class ElectionCharts:
         )
 
         st.caption(
-            f"Backtest: {results.get('training_period', '2011-2016')} "
-            f"→ {results.get('validation_period', '2021')} | "
+            f"Backtest: "
+            f"{results.get('training_period', '2011-2016')} "
+            f"→ "
+            f"{results.get('validation_period', '2021')} | "
             f"Validation constituencies: {validation_rows}"
         )
 
@@ -999,9 +993,7 @@ class ElectionCharts:
             key="party_year"
         )
 
-        result_column = (
-            f"result_{year}"
-        )
+        result_column = f"result_{year}"
 
         party_counts = (
             self.df[
@@ -1160,21 +1152,18 @@ class ElectionCharts:
 
         result = self.df.copy()
 
-        # -------------------------------------------------
-        # Get predictions from the FastAPI service instead
-        # of predicting locally against the .pkl models.
-        # The scenario simulator only processes whatever the
-        # API hands back.
-        # -------------------------------------------------
-
         try:
 
-            baseline_response = self._call_prediction_api(
-                baseline
+            baseline_response = (
+                self._call_prediction_api(
+                    baseline
+                )
             )
 
-            scenario_response = self._call_prediction_api(
-                scenario
+            scenario_response = (
+                self._call_prediction_api(
+                    scenario
+                )
             )
 
         except RuntimeError as e:
@@ -1683,26 +1672,13 @@ class ElectionCharts:
                 )
 
         rename_map = {
-            "constituency_id":
-                "ID",
-
-            "state":
-                "State",
-
-            "baseline_pred_margin":
-                "Margin Before %",
-
-            "scenario_pred_margin":
-                "Margin After %",
-
-            "baseline_pred_winner":
-                "Winner Before",
-
-            "scenario_pred_winner":
-                "Winner After",
-
-            "scenario_pred_retained_label":
-                "Status After"
+            "constituency_id": "ID",
+            "state": "State",
+            "baseline_pred_margin": "Margin Before %",
+            "scenario_pred_margin": "Margin After %",
+            "baseline_pred_winner": "Winner Before",
+            "scenario_pred_winner": "Winner After",
+            "scenario_pred_retained_label": "Status After"
         }
 
         display_df = display_df.rename(
@@ -1774,6 +1750,15 @@ class ElectionCharts:
             key="merged_map_year"
         )
 
+        # -------------------------------------------------
+        # IMPORTANT FIX:
+        #
+        # Always start from historical self.df.
+        # Do NOT replace it completely with prediction_df.
+        #
+        # This guarantees historical columns remain available.
+        # -------------------------------------------------
+
         map_df = self.df.copy()
 
         if map_year == "2011":
@@ -1786,9 +1771,7 @@ class ElectionCharts:
                 map_df["turnout_2011"]
             )
 
-            map_title = (
-                "2011 Election Result"
-            )
+            map_title = "2011 Election Result"
 
         elif map_year == "2016":
 
@@ -1800,9 +1783,7 @@ class ElectionCharts:
                 map_df["turnout_2016"]
             )
 
-            map_title = (
-                "2016 Election Result"
-            )
+            map_title = "2016 Election Result"
 
         elif map_year == "2021":
 
@@ -1814,9 +1795,7 @@ class ElectionCharts:
                 map_df["turnout_2021"]
             )
 
-            map_title = (
-                "2021 Election Result"
-            )
+            map_title = "2021 Election Result"
 
         else:
 
@@ -1829,12 +1808,44 @@ class ElectionCharts:
 
                 return
 
-            map_df = prediction_df.copy()
+            if "constituency_id" not in prediction_df.columns:
 
-            if (
-                "scenario_pred_winner"
-                not in map_df.columns
-            ):
+                st.warning(
+                    "Prediction data does not contain constituency_id."
+                )
+
+                return
+
+            prediction_columns = [
+                "constituency_id",
+                "scenario_pred_winner",
+                "scenario_pred_margin",
+                "scenario_pred_retained_label",
+                "new_turnout_2021"
+            ]
+
+            prediction_columns = [
+                column
+                for column in prediction_columns
+                if column in prediction_df.columns
+            ]
+
+            prediction_lookup = (
+                prediction_df[
+                    prediction_columns
+                ]
+                .drop_duplicates(
+                    subset="constituency_id"
+                )
+            )
+
+            map_df = map_df.merge(
+                prediction_lookup,
+                on="constituency_id",
+                how="left"
+            )
+
+            if "scenario_pred_winner" not in map_df.columns:
 
                 st.warning(
                     "Prediction winner column is not available."
@@ -1848,10 +1859,7 @@ class ElectionCharts:
                 ]
             )
 
-            if (
-                "new_turnout_2021"
-                in map_df.columns
-            ):
+            if "new_turnout_2021" in map_df.columns:
 
                 map_df["map_turnout"] = (
                     map_df[
@@ -1876,93 +1884,114 @@ class ElectionCharts:
                 f"(Turnout {turnout_delta:+d}%)"
             )
 
+        # -------------------------------------------------
+        # COMMON MAP COLUMNS
+        # -------------------------------------------------
+
         map_df["Constituency"] = (
             map_df[
                 "constituency_id"
-            ].astype(str)
+            ]
+            .astype(str)
         )
 
         map_df["State"] = (
             map_df[
                 "state"
-            ].astype(str)
+            ]
+            .astype(str)
         )
 
         map_df["Winner"] = (
             map_df[
                 "map_winner"
-            ].astype(str)
+            ]
+            .astype(str)
         )
 
         map_df["2011 Winner"] = (
-            map_df["result_2011"]
+            map_df[
+                "result_2011"
+            ]
         )
 
         map_df["2016 Winner"] = (
-            map_df["result_2016"]
+            map_df[
+                "result_2016"
+            ]
         )
 
         map_df["2021 Winner"] = (
-            map_df["result_2021"]
+            map_df[
+                "result_2021"
+            ]
         )
 
         map_df["2011 Turnout"] = (
-            map_df["turnout_2011"]
+            map_df[
+                "turnout_2011"
+            ]
         )
 
         map_df["2016 Turnout"] = (
-            map_df["turnout_2016"]
+            map_df[
+                "turnout_2016"
+            ]
         )
 
         map_df["2021 Turnout"] = (
-            map_df["turnout_2021"]
+            map_df[
+                "turnout_2021"
+            ]
         )
 
-        if prediction_df is not None:
+        if (
+            "scenario_pred_winner"
+            in map_df.columns
+        ):
 
-            if (
-                "scenario_pred_winner"
-                in map_df.columns
-            ):
-
+            map_df["Predicted Winner"] = (
                 map_df[
-                    "Predicted Winner"
-                ] = map_df[
                     "scenario_pred_winner"
                 ]
+            )
 
-            if (
-                "scenario_pred_margin"
-                in map_df.columns
-            ):
+        if (
+            "scenario_pred_margin"
+            in map_df.columns
+        ):
 
+            map_df["Predicted Margin"] = (
                 map_df[
-                    "Predicted Margin"
-                ] = map_df[
                     "scenario_pred_margin"
                 ]
+            )
 
-            if (
-                "scenario_pred_retained_label"
-                in map_df.columns
-            ):
+        if (
+            "scenario_pred_retained_label"
+            in map_df.columns
+        ):
 
+            map_df["Prediction Status"] = (
                 map_df[
-                    "Prediction Status"
-                ] = map_df[
                     "scenario_pred_retained_label"
                 ]
+            )
 
-            if (
-                "new_turnout_2021"
-                in map_df.columns
-            ):
+        if (
+            "new_turnout_2021"
+            in map_df.columns
+        ):
 
+            map_df["Scenario Turnout"] = (
                 map_df[
-                    "Scenario Turnout"
-                ] = map_df[
                     "new_turnout_2021"
                 ]
+            )
+
+        # -------------------------------------------------
+        # PARTY COLORS
+        # -------------------------------------------------
 
         parties = sorted(
             map_df[
@@ -1998,13 +2027,9 @@ class ElectionCharts:
             in enumerate(parties)
         }
 
-        map_df["Color"] = (
-            map_df[
-                "Winner"
-            ]
-            .map(party_colors)
-            .fillna("#7F8C8D")
-        )
+        # -------------------------------------------------
+        # PLOTLY CONSTITUENCY MAP
+        # -------------------------------------------------
 
         fig = px.scatter(
             map_df,
@@ -2027,9 +2052,18 @@ class ElectionCharts:
             title=map_title
         )
 
+        fig.update_traces(
+            marker=dict(
+                size=10
+            )
+        )
+
+        # -------------------------------------------------
+        # PREDICTION HOVER INFORMATION
+        # -------------------------------------------------
+
         if (
-            prediction_df is not None
-            and "Predicted Winner"
+            "Predicted Winner"
             in map_df.columns
         ):
 
@@ -2052,6 +2086,18 @@ class ElectionCharts:
                     "Predicted Margin"
                 )
 
+            if "Prediction Status" in map_df.columns:
+
+                hover_columns.append(
+                    "Prediction Status"
+                )
+
+            if "Scenario Turnout" in map_df.columns:
+
+                hover_columns.append(
+                    "Scenario Turnout"
+                )
+
             customdata = map_df[
                 hover_columns
             ].values
@@ -2070,31 +2116,40 @@ class ElectionCharts:
                 "2011: %{customdata[6]:.2f}%<br>"
                 "2016: %{customdata[7]:.2f}%<br>"
                 "2021: %{customdata[8]:.2f}%<br>"
-            )
-
-            hover_template += (
                 "<br>"
                 "<b>Prediction</b><br>"
                 "Winner: %{customdata[9]}<br>"
             )
 
+            index = 10
+
             if "Predicted Margin" in map_df.columns:
 
                 hover_template += (
-                    "Margin: %{customdata[10]:.2f}%<br>"
+                    "Margin: "
+                    f"%{{customdata[{index}]:.2f}}%<br>"
+                )
+
+                index += 1
+
+            if "Prediction Status" in map_df.columns:
+
+                hover_template += (
+                    f"Status: %{{customdata[{index}]}}<br>"
+                )
+
+                index += 1
+
+            if "Scenario Turnout" in map_df.columns:
+
+                hover_template += (
+                    "Scenario Turnout: "
+                    f"%{{customdata[{index}]:.2f}}%<br>"
                 )
 
             fig.update_traces(
                 customdata=customdata,
                 hovertemplate=hover_template
-            )
-
-        else:
-
-            fig.update_traces(
-                marker=dict(
-                    size=10
-                )
             )
 
         fig.update_layout(
@@ -2128,6 +2183,10 @@ class ElectionCharts:
                 "displayModeBar": False
             }
         )
+
+        # -------------------------------------------------
+        # SUMMARY
+        # -------------------------------------------------
 
         st.markdown(
             f"**{map_title} — "
@@ -2205,7 +2264,8 @@ class ElectionCharts:
             ] = (
                 turnout_summary[
                     "Average Turnout"
-                ].round(2)
+                ]
+                .round(2)
             )
 
             st.dataframe(
@@ -2215,7 +2275,7 @@ class ElectionCharts:
             )
 
     # =====================================================
-    # OPTIONAL FOLIUM MAP
+    # OPTIONAL FOLIUM GEOGRAPHIC MAP
     # =====================================================
 
     def plot_geographic_map(
@@ -2277,12 +2337,31 @@ class ElectionCharts:
 
         if prediction_df is not None:
 
+            required_prediction_columns = [
+                "constituency_id",
+                "scenario_pred_winner"
+            ]
+
+            missing_prediction_columns = [
+                column
+                for column in required_prediction_columns
+                if column not in prediction_df.columns
+            ]
+
+            if missing_prediction_columns:
+
+                st.warning(
+                    "Prediction data is missing: "
+                    + ", ".join(
+                        missing_prediction_columns
+                    )
+                )
+
+                return
+
             prediction_lookup = (
                 prediction_df[
-                    [
-                        "constituency_id",
-                        "scenario_pred_winner"
-                    ]
+                    required_prediction_columns
                 ]
                 .drop_duplicates(
                     subset="constituency_id"
@@ -2300,14 +2379,18 @@ class ElectionCharts:
                     "scenario_pred_winner"
                 ]
                 .fillna(
-                    map_df["result_2021"]
+                    map_df[
+                        "result_2021"
+                    ]
                 )
             )
 
         else:
 
             map_df["Map Winner"] = (
-                map_df["result_2021"]
+                map_df[
+                    "result_2021"
+                ]
             )
 
         center_lat = map_df[
@@ -2329,7 +2412,9 @@ class ElectionCharts:
         for _, row in map_df.iterrows():
 
             constituency = str(
-                row["constituency_id"]
+                row[
+                    "constituency_id"
+                ]
             )
 
             state = str(
@@ -2340,7 +2425,9 @@ class ElectionCharts:
             )
 
             winner = str(
-                row["Map Winner"]
+                row[
+                    "Map Winner"
+                ]
             )
 
             turnout = row.get(

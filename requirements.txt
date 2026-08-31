@@ -3,10 +3,13 @@ python-dotenv
 pandas
 openpyxl
 streamlit
-folium 
+folium
 streamlit-folium
 plotly
 scikit-learn
 xgboost
 joblib
 numpy
+fastapi
+uvicorn
+requests
