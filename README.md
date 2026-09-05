@@ -1,106 +1,218 @@
-# Full Stack ML Application: Election Analysis 2026
+# Election Analysis 2026
 
-## Project Overview
+A full-stack machine learning application for analyzing historical Legislative Assembly election data and generating model-based predictions, turnout scenarios, retention analysis, backtesting, interactive visualizations, and constituency-level election insights.
 
-**Election Analysis 2026** is a full-stack machine learning application that analyzes historical Legislative Assembly election data from **2011, 2016, and 2021** to identify voting trends, incumbency patterns, turnout changes, demographic influence, and constituency-level election behavior.
-
-The application uses historical data to train machine learning models and provides **2026 election predictions and scenario-based analysis** through an interactive Streamlit dashboard.
-
-The project demonstrates the complete machine learning lifecycle:
-
-**Data Collection → Data Cleaning → Feature Engineering → Database → Model Training → Model Prediction → FastAPI → Streamlit Dashboard → Visualization → Scenario Simulation → Historical Backtesting**
-
-<img width="872" height="282" alt="image" src="https://github.com/user-attachments/assets/a6e311ea-263c-46a3-aa0c-d1103625f44a" />
-<img width="835" height="457" alt="image" src="https://github.com/user-attachments/assets/013d585b-6913-4833-93a1-079e47af2574" />
-<img width="1912" height="856" alt="image" src="https://github.com/user-attachments/assets/af2936a7-463a-429a-8ffa-16c9862a624d" />
+The application combines **Python, Pandas, Scikit-learn, Random Forest, PostgreSQL, FastAPI, Streamlit, Plotly, Folium, and GeoJSON** into an end-to-end machine learning system.
 
 ---
 
-# Project Objectives
+## Project Overview
 
-The application is designed to:
+**Election Analysis 2026** analyzes historical election data from:
 
-* Analyze historical Legislative Assembly election results.
-* Study voter turnout and turnout changes.
-* Calculate margin of victory and swing factors.
-* Analyze incumbency and party retention.
-* Incorporate demographic information such as Urban, Semi-Urban, and Rural.
-* Train machine learning models using historical election data.
-* Predict possible 2026 election outcomes.
-* Simulate election scenarios such as a 5% increase in voter turnout.
-* Perform historical backtesting.
-* Store constituency-level information in PostgreSQL.
-* Provide an interactive dashboard for analysis and visualization.
+* 2011
+* 2016
+* 2021
+
+The application uses historical election information to identify patterns related to:
+
+* Voter turnout
+* Turnout changes
+* Margin of victory
+* Swing factors
+* Previous election results
+* Party retention
+* Demographic classification
+* Constituency-level behavior
+
+The processed data is used to train machine learning models that can generate predictions for future election scenarios.
+
+
+<img width="767" height="342" alt="image" src="https://github.com/user-attachments/assets/e80ed06a-648b-4358-87bf-f9ec7076b0c3" />
+
+<img width="1136" height="411" alt="image" src="https://github.com/user-attachments/assets/74acb53f-895a-4e5d-81e9-8146baef4b86" />
+
+<img width="1905" height="856" alt="image" src="https://github.com/user-attachments/assets/0bde299f-742c-4050-a5a6-37de47dd4524" />
+
+
+The application follows a full-stack architecture:
+
+```text
+Historical Election Data
+        |
+        v
+Data Cleaning & Preparation
+        |
+        v
+Feature Engineering
+        |
+        v
+Machine Learning Training
+        |
+        v
+Saved ML Models
+        |
+        v
+FastAPI Backend
+        |
+        v
+Streamlit Frontend
+        |
+        v
+Charts + Tables + Maps
+        |
+        v
+Prediction / Scenario / Backtesting
+```
+
+---
+
+# Key Features
+
+### Historical Election Analysis
+
+Analyze election information from 2011, 2016, and 2021.
+
+### Machine Learning Prediction
+
+Generate constituency-level predictions using trained Random Forest models.
+
+### Margin Prediction
+
+Predict the expected election margin using historical election features.
+
+### Party Prediction
+
+Predict the possible winning party based on historical patterns and engineered features.
+
+### Retention Prediction
+
+Estimate whether the previous winning party is likely to retain a constituency.
+
+### Turnout Scenario Simulation
+
+Simulate hypothetical changes in voter turnout.
+
+Example:
+
+```text
+Current Turnout = 75%
+
+Scenario:
+Turnout Increase = 5%
+
+Scenario Turnout = 80%
+```
+
+The modified data is passed through the prediction API to observe how the model's output changes.
+
+### Historical Backtesting
+
+Evaluate the prediction system against historical election results.
+
+Example:
+
+```text
+Training:
+2011 + 2016
+
+Prediction:
+2021
+
+Comparison:
+Predicted Result vs Actual Result
+```
+
+### Interactive Dashboard
+
+The Streamlit dashboard presents:
+
+* Seats won by party
+* Turnout scenario analysis
+* Retention analysis
+* Party flips
+* Turnout trends
+* Constituency details
+* Election maps
+* ML predictions
+
+### Interactive Election Map
+
+Folium and GeoJSON are used to visualize constituency-level election information geographically.
 
 ---
 
 # System Architecture
 
 ```text
-                         HISTORICAL ELECTION DATA
-                                  |
-                                  v
-                    +-----------------------------+
-                    |       Data Engineering      |
-                    |                             |
-                    |  Data Cleaning              |
-                    |  Data Transformation        |
-                    |  Feature Engineering        |
-                    +-------------+---------------+
-                                  |
-                                  v
-                    +-----------------------------+
-                    |       PostgreSQL DB          |
-                    |                             |
-                    | Constituency Metadata       |
-                    | Election Information        |
-                    | Party Information           |
-                    +-------------+---------------+
-                                  |
-                                  v
-                    +-----------------------------+
-                    |      Machine Learning       |
-                    |                             |
-                    | Feature Preparation         |
-                    | Model Training              |
-                    | Model Evaluation            |
-                    +-------------+---------------+
-                                  |
-                                  v
-                    +-----------------------------+
-                    |       Saved ML Models       |
-                    |                             |
-                    | Margin Model                |
-                    | Retention Model             |
-                    | Party Prediction Model      |
-                    +-------------+---------------+
-                                  |
-                                  v
-                    +-----------------------------+
-                    |          FastAPI             |
-                    |                             |
-                    | /health                     |
-                    | /predict                    |
-                    | /predict/bulk               |
-                    | /predict/scenario           |
-                    | /predict/backtesting        |
-                    | /predict/retention          |
-                    +-------------+---------------+
-                                  |
-                                  v
-                    +-----------------------------+
-                    |        Streamlit App        |
-                    |                             |
-                    | Dashboard                   |
-                    | Prediction                  |
-                    | Scenario Simulation         |
-                    | Backtesting                 |
-                    | Charts                      |
-                    | Maps                        |
-                    +-------------+---------------+
-                                  |
-                                  v
-                         USER / FINAL RESULT
+                    HISTORICAL ELECTION DATA
+                              |
+                              v
+                 +-------------------------+
+                 |     Data Preparation    |
+                 |                         |
+                 | Cleaning                |
+                 | Transformation         |
+                 | Validation             |
+                 +-----------+-------------+
+                             |
+                             v
+                 +-------------------------+
+                 |   Feature Engineering   |
+                 |                         |
+                 | Turnout                |
+                 | Margin                 |
+                 | Swing                  |
+                 | Previous Results       |
+                 | Demographics           |
+                 +-----------+-------------+
+                             |
+                             v
+                 +-------------------------+
+                 |    Machine Learning     |
+                 |                         |
+                 | Random Forest           |
+                 | Regression              |
+                 | Classification         |
+                 +-----------+-------------+
+                             |
+                             v
+                 +-------------------------+
+                 |     Saved ML Models     |
+                 |                         |
+                 | Margin Model            |
+                 | Retention Model         |
+                 | Party Model             |
+                 +-----------+-------------+
+                             |
+                             v
+                 +-------------------------+
+                 |       FastAPI           |
+                 |                         |
+                 | /health                 |
+                 | /predict                |
+                 | /predict/bulk           |
+                 | /predict/scenario       |
+                 | /predict/backtesting    |
+                 | /predict/retention      |
+                 +-----------+-------------+
+                             |
+                             | HTTP
+                             v
+                 +-------------------------+
+                 |       Streamlit         |
+                 |                         |
+                 | Dashboard               |
+                 | Predictions             |
+                 | Scenarios               |
+                 | Backtesting             |
+                 | Charts                  |
+                 | Tables                  |
+                 | Maps                    |
+                 +-----------+-------------+
+                             |
+                             v
+                         USER
 ```
 
 ---
@@ -111,19 +223,20 @@ The application is designed to:
 | --------------------- | ------------------ |
 | Programming Language  | Python             |
 | Frontend              | Streamlit          |
-| Backend               | FastAPI            |
+| Backend API           | FastAPI            |
 | Database              | PostgreSQL         |
 | Machine Learning      | Scikit-learn       |
-| Models                | Random Forest      |
+| ML Algorithm          | Random Forest      |
 | Data Processing       | Pandas, NumPy      |
 | Visualization         | Plotly             |
-| Maps                  | Folium             |
-| Model Storage         | Joblib             |
-| Configuration         | python-dotenv      |
-| API Communication     | Requests           |
+| Mapping               | Folium             |
+| Geospatial Data       | GeoJSON            |
+| Model Serialization   | Joblib             |
 | Database Connectivity | Psycopg2           |
-| Data Format           | CSV / Excel        |
-| API Testing           | FastAPI Swagger UI |
+| Configuration         | python-dotenv      |
+| HTTP Communication    | Requests           |
+| Dataset Formats       | CSV, Excel         |
+| API Documentation     | FastAPI Swagger UI |
 
 ---
 
@@ -134,31 +247,29 @@ Election_Analysis/
 │
 ├── app.py
 │
-├── fastapi_app.py
-│
-├── connection.py
-│
-├── election_mode.py
-│
-├── scenario_simulator.py
+├── api.py
 │
 ├── requirements.txt
+├── README.md
 ├── .env
+├── .gitignore
 │
-├── api/
-│   └── ...
+├── database/
+│   └── connection.py
 │
 ├── dataset/
 │   ├── raw/
+│   │
 │   └── training/
 │       ├── election_2011.csv
 │       ├── election_2016.csv
 │       ├── election_2021.csv
-│       └── legislative_assembly_data.xlsx
+│       ├── legislative_assembly_data.xlsx
+│       └── merged_election_data.csv
 │
 ├── machine_learning/
 │   ├── election_model.py
-│   └── ...
+│   └── scenario_simulator.py
 │
 ├── models/
 │   ├── rf_margin_model.pkl
@@ -174,21 +285,32 @@ Election_Analysis/
     └── kerala_assembly.geojson
 ```
 
+> The exact dataset files may vary depending on the version of the project and the training pipeline used.
+
 ---
 
 # Application Flow
 
-## Step 1: Historical Data
+## 1. Historical Data
 
-The application starts with historical election data from:
+The project begins with historical Legislative Assembly election datasets.
 
 ```text
-2011
-2016
-2021
+2011 Election
+     |
+     +------+
+            |
+2016 Election
+     |
+     +------+
+            |
+2021 Election
+     |
+     v
+Combined Historical Dataset
 ```
 
-The data contains information such as:
+The datasets contain election-related information such as:
 
 ```text
 State
@@ -202,95 +324,88 @@ Margin
 Demographic Category
 ```
 
-Example:
-
-```text
-Constituency: Ernakulam
-Year: 2021
-Party: Party A
-Votes: 65000
-Turnout: 78.4
-Margin: 5200
-Demographic: Urban
-```
-
 ---
 
-# Step 2: Data Cleaning
+# 2. Data Cleaning
 
-The data engineering stage cleans the historical datasets.
+Before the data is used for machine learning, it is cleaned and standardized.
 
 Typical operations include:
 
 ```text
 Remove duplicate records
+        |
 Handle missing values
+        |
 Standardize column names
-Remove unwanted spaces
-Convert percentages to numeric values
-Convert categorical values
-Validate election records
+        |
+Remove unnecessary spaces
+        |
+Convert numeric columns
+        |
+Convert percentage values
+        |
+Validate records
 ```
 
 Example:
 
 ```text
-"  Urban " → "Urban"
+" Urban "  ->  "Urban"
 
-"78.4%" → 78.4
+"78.4%"    ->  78.4
 
-"Party A " → "Party A"
+"Party A " ->  "Party A"
 ```
 
-The cleaned data is then used for feature engineering and model training.
+Cleaned data is then passed to the feature engineering stage.
 
 ---
 
-# Step 3: Feature Engineering
+# 3. Feature Engineering
 
-Raw election information is transformed into machine-learning features.
+Machine learning models cannot directly work with all raw election information.
 
-Important features include:
+Therefore, historical election data is transformed into numerical features.
+
+Important features used by the prediction pipeline include:
 
 ```text
 state_encoded
 demographic_encoded
-turnout_2011
 turnout_2016
 turnout_2021
-turnout_change
+turnout_change_21
 margin_2016
-margin_2021
-swing_factor
+swing_2016
 result_2016_encoded
-incumbency information
 ```
 
-### Example
+Historical turnout changes are calculated from election data.
 
-Suppose:
+For example:
 
 ```text
-2016 turnout = 75%
-2021 turnout = 80%
+2016 Turnout = 75%
+
+2021 Turnout = 80%
+
+Turnout Change
+= 80 - 75
+= 5%
 ```
 
-Then:
-
-```text
-turnout_change = 80 - 75
-               = 5%
-```
-
-The model can use this information to understand whether increasing turnout is associated with changes in election outcomes.
+This allows the model to learn relationships between turnout changes and election outcomes.
 
 ---
 
-# Step 4: Database Layer
+# 4. PostgreSQL Database
 
-PostgreSQL stores constituency-level information and election metadata.
+PostgreSQL is used as the persistent database layer.
 
-The database can contain information such as:
+The database stores structured election and constituency information.
+
+Examples include:
 
 ```text
 Constituency
@@ -307,150 +422,271 @@ Turnout
 Margin
 ```
 
-The database connection is handled through:
+The database connection is managed through:
 
 ```text
-connection.py
+database/connection.py
 ```
 
-The application obtains a database connection using the PostgreSQL configuration stored in environment variables.
+The connection configuration is loaded from environment variables.
+
+Example:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=election_db
+DB_USER=postgres
+DB_PASSWORD=your_password
+```
+
+The database keeps application data separate from the frontend and machine learning code.
 
 ---
 
-# Step 5: Machine Learning Training
+# 5. Machine Learning Pipeline
 
-Historical election data is passed to the machine learning pipeline.
-
-The training process is:
+The machine learning pipeline is implemented in:
 
 ```text
-Historical Data
-       |
-       v
-Feature Engineering
-       |
-       v
-Train/Test Split
-       |
-       v
-Random Forest Model
-       |
-       v
-Model Evaluation
-       |
-       v
-Save Model
+machine_learning/election_model.py
 ```
 
-The project uses multiple prediction models.
-
-### Margin Prediction Model
-
-Predicts the expected margin of victory.
+The general training flow is:
 
 ```text
-Input:
-Turnout
-Historical Margin
-Swing
-Demographic
-Previous Election Result
-       |
-       v
-Random Forest
-       |
-       v
+2011 Data
+     |
+2016 Data
+     |
+2021 Data
+     |
+     v
+Data Cleaning
+     |
+     v
+Historical Data Merge
+     |
+     v
+Feature Engineering
+     |
+     v
+Feature Encoding
+     |
+     v
+Train/Test Split
+     |
+     v
+Random Forest Models
+     |
+     v
+Model Evaluation
+     |
+     v
+Model Serialization
+```
+
+The trained models are stored in the `models/` directory.
+
+---
+
+# 6. Machine Learning Models
+
+The project uses separate models for different prediction tasks.
+
+## Margin Model
+
+File:
+
+```text
+models/rf_margin_model.pkl
+```
+
+This model is used for margin-related prediction.
+
+Conceptually:
+
+```text
+Historical Features
+        |
+        v
+Random Forest Regression
+        |
+        v
 Predicted Margin
 ```
-
-### Retention Model
-
-Predicts whether the incumbent/previous winning party is likely to retain the constituency.
 
 Example:
 
 ```text
-Previous winner = Party A
-Historical margin = High
-Turnout = Stable
-Swing = Low
+Predicted Margin = 6,200 votes
+```
+
+---
+
+## Retention Model
+
+File:
+
+```text
+models/rf_retained_model.pkl
+```
+
+This model performs classification for party/constituency retention.
+
+Conceptually:
+
+```text
+Historical Features
+        |
+        v
+Random Forest Classification
+        |
+        v
+Retained / Not Retained
+```
+
+Example:
+
+```text
+Previous Winner = Party A
 
 Prediction:
 Party A likely to retain
 ```
 
-### Party Prediction Model
+---
 
-Predicts the possible winning party based on historical features.
+## Party Prediction Model
+
+File:
+
+```text
+models/rf_party_model.pkl
+```
+
+This model predicts the possible winning party.
+
+Conceptually:
+
+```text
+Historical Election Features
+        |
+        v
+Random Forest Classification
+        |
+        v
+Predicted Party
+```
 
 ---
 
-# Step 6: Model Storage
+# 7. Model Encoders
 
-After training, the models are saved using Joblib.
+Machine learning models require numerical representations of categorical information.
 
-```text
-models/
-│
-├── rf_margin_model.pkl
-├── rf_retained_model.pkl
-└── rf_party_model.pkl
-```
-
-Encoders are also stored so that the same categorical mappings are used during prediction.
+The project stores the encoding information in:
 
 ```text
-state_encoder.json
-party_encoder.json
+models/state_encoder.json
+models/party_encoder.json
 ```
 
-This is important because the prediction system must transform input data in exactly the same way as the training system.
+For example:
+
+```text
+State
+
+Kerala      -> 0
+Tamil Nadu  -> 1
+Karnataka   -> 2
+```
+
+Similarly, party names are transformed into numerical representations.
+
+The same mapping must be used during:
+
+```text
+Training
+   |
+   v
+Prediction
+```
+
+This prevents inconsistencies between the training and prediction pipelines.
 
 ---
 
-# Step 7: FastAPI Backend
+# 8. FastAPI Backend
 
-FastAPI acts as the backend prediction service.
-
-The main backend file is:
+The backend API is implemented in:
 
 ```text
 api.py
 ```
 
-The Streamlit frontend does not directly execute the machine learning models.
+FastAPI provides the machine learning prediction service.
 
-Instead:
+The architecture is:
 
 ```text
 Streamlit
     |
-    | HTTP POST
+    | HTTP Request
     v
 FastAPI
     |
     v
-Machine Learning Model
+Feature Preparation
+    |
+    v
+ML Models
     |
     v
 Prediction
     |
     v
-FastAPI Response
+JSON Response
     |
     v
 Streamlit
 ```
 
-This creates a proper full-stack architecture.
+The Streamlit application does not directly run the ML prediction models for API-based prediction.
+
+Instead, it communicates with FastAPI using HTTP requests.
+
+This provides separation between:
+
+```text
+Frontend
+Backend
+Machine Learning
+```
 
 ---
 
-# Step 8: API Endpoints
+# 9. API Endpoints
 
-## `/health`
+## GET `/`
 
-Checks whether FastAPI is running.
+Basic API/root endpoint.
+
+```text
+GET /
+```
+
+Used to confirm that the API application is available.
+
+---
+
+## GET `/health`
+
+Health-check endpoint.
+
+```text
+GET /health
+```
 
 Example response:
 
@@ -460,127 +696,157 @@ Example response:
 }
 ```
 
-The Streamlit application uses this endpoint to verify backend availability.
+The Streamlit application can use this endpoint to determine whether the backend is running.
 
 ---
 
-## `/predict`
+## POST `/predict`
 
-Predicts an election outcome for a single constituency.
-
-Example:
+Used for prediction of a single constituency or input record.
 
 ```text
-Input
-    |
-    v
-Constituency Features
-    |
-    v
+POST /predict
+```
+
+Flow:
+
+```text
+Input Features
+      |
+      v
 FastAPI
-    |
-    v
-ML Model
-    |
-    v
-Prediction
-```
-
----
-
-## `/predict/bulk`
-
-Predicts multiple constituencies at once.
-
-This endpoint is useful when the dashboard needs predictions for an entire election dataset.
-
-Example:
-
-```text
-1000 Constituencies
-       |
-       v
-/predict/bulk
-       |
-       v
+      |
+      v
+Feature Preparation
+      |
+      v
 ML Models
-       |
-       v
-1000 Predictions
+      |
+      v
+Prediction
+      |
+      v
+JSON Response
 ```
 
 ---
 
-## `/predict/scenario`
+## POST `/predict/bulk`
 
-Used for scenario simulation.
+Used for predicting multiple constituencies.
+
+```text
+POST /predict/bulk
+```
 
 Example:
 
 ```text
-Current turnout = 75%
-
-Scenario:
-Increase turnout by 5%
-
-New turnout = 80%
-
-       |
-       v
-ML Model
-       |
-       v
-Scenario Prediction
+Multiple Constituencies
+          |
+          v
+    /predict/bulk
+          |
+          v
+      ML Models
+          |
+          v
+Multiple Predictions
 ```
 
-This allows users to understand how election outcomes could change under different assumptions.
+This endpoint is particularly useful for generating predictions for an entire election dataset.
 
 ---
 
-## `/predict/backtesting`
+## POST `/predict/scenario`
 
-Used to evaluate the model against historical election outcomes.
-
-For example:
+Used for hypothetical election scenario analysis.
 
 ```text
-Train using:
+POST /predict/scenario
+```
+
+Example:
+
+```text
+Current Turnout = 75%
+
+User selects:
+Turnout Increase = 5%
+
+Scenario Turnout = 80%
+
+        |
+        v
+
+/predict/scenario
+
+        |
+        v
+
+ML Prediction
+```
+
+The purpose of the scenario is to demonstrate how the model responds to a hypothetical change.
+
+It should not be interpreted as a guaranteed election outcome.
+
+---
+
+## POST `/predict/backtesting`
+
+Used for historical model evaluation.
+
+```text
+POST /predict/backtesting
+```
+
+Example:
+
+```text
 2011 + 2016
-
-Predict:
-2021
-
-Compare:
-Predicted Result vs Actual Result
+     |
+     v
+Train Model
+     |
+     v
+Predict 2021
+     |
+     v
+Compare With Actual 2021
 ```
 
-This provides an indication of how well the model performs on unseen historical data.
+Backtesting provides a way to evaluate model performance against historical data.
 
 ---
 
-## `/predict/retention`
+## POST `/predict/retention`
 
-Predicts whether a party is likely to retain a constituency.
+Used for retention prediction.
+
+```text
+POST /predict/retention
+```
 
 Example:
 
 ```text
-Previous Winner = Party A
-
+Previous Winning Party
+        +
 Historical Features
         |
         v
 Retention Model
         |
         v
-Retained = Yes
+Retention Prediction
 ```
 
 ---
 
-# Step 9: Streamlit Frontend
+# 10. Streamlit Frontend
 
-The main frontend file is:
+The main frontend is:
 
 ```text
 app.py
@@ -588,40 +854,72 @@ app.py
 
 Streamlit provides the interactive user interface.
 
-The dashboard can contain:
+The frontend is responsible for:
 
 ```text
-Election Analysis Dashboard
+Dashboard UI
+User Input
+Data Selection
+FastAPI Communication
+Prediction Display
+Chart Display
+Table Display
+Map Display
+Application Status
+```
 
-+----------------------+----------------------+
-| Seats Won by Party  | Turnout Scenario     |
-|                      | Simulator            |
-+----------------------+----------------------+
+The high-level flow is:
 
-+-------------+-------------+----------------+
-| Retention   | Party Flips | Turnout Trend |
-+-------------+-------------+----------------+
-
-+--------------------------------------------+
-| Constituency Details                       |
-+--------------------------------------------+
-
-+--------------------------------------------+
-| Election Map                               |
-+--------------------------------------------+
+```text
+User
+ |
+ v
+Streamlit app.py
+ |
+ v
+Prepare Data
+ |
+ v
+Call FastAPI
+ |
+ v
+Receive JSON Response
+ |
+ v
+Process Results
+ |
+ v
+ElectionCharts
+ |
+ +------> Charts
+ |
+ +------> Tables
+ |
+ +------> Maps
+ |
+ v
+Dashboard
 ```
 
 ---
 
-# Step 10: Visualization Layer
+# 11. Visualization Layer
 
-The visualization logic is separated into:
+Visualization functionality is separated into:
 
 ```text
 visualization/election_charts.py
 ```
 
-This class is responsible for generating charts and maps.
+The main visualization class is:
+
+```text
+ElectionCharts
+```
+
+Separating visualization from `app.py` makes the application easier to maintain.
+
+The visualization layer handles election-related graphical output.
 
 Examples include:
 
@@ -635,477 +933,207 @@ Election Map
 Constituency Details
 ```
 
-Separating visualization from `app.py` keeps the frontend code cleaner and easier to maintain.
-
----
-
-# Important Classes and Files
-
-## 1. `app.py`
-
-### Responsibility
-
-`app.py` is the main Streamlit frontend.
-
-It controls:
-
-```text
-Dashboard UI
-User inputs
-FastAPI communication
-Prediction results
-Charts
-Tables
-Application status
-```
-
-### Flow
-
-```text
-User
- |
- v
-app.py
- |
- +----> Prepare Input Data
- |
- +----> Call FastAPI
- |
- +----> Receive Prediction
- |
- +----> Display Charts
- |
- +----> Display Map
-```
-
-### Example
-
-If the user selects:
-
-```text
-Turnout Increase = 5%
-```
-
-`app.py` sends the scenario information to FastAPI.
-
----
-
-# 2. `api_app.py`
-
-### Responsibility
-
-This is the backend API layer.
-
-It:
-
-```text
-Loads trained models
-Receives requests
-Validates input
-Prepares model features
-Runs predictions
-Returns JSON responses
-```
-
-Example:
-
-```text
-POST /predict/bulk
-```
-
-The backend receives constituency data and returns predictions.
-
----
-
-# 3. `connection.py`
-
-### Responsibility
-
-Handles PostgreSQL database connections.
-
-Instead of opening database connections throughout the application, the project uses a centralized connection function.
-
-Conceptually:
-
-```text
-app
- |
- v
-connection.py
- |
- v
-PostgreSQL
-```
-
-Example:
-
-```text
-get_connection()
-      |
-      v
-PostgreSQL Connection
-```
-
----
-
-# 4. `election_model.py`
-
-### Responsibility
-
-This file contains the machine learning logic.
-
-It is responsible for:
-
-```text
-Loading election datasets
-Merging historical elections
-Feature engineering
-Encoding categorical variables
-Training models
-Evaluating models
-Saving models
-```
-
-The general flow is:
-
-```text
-2011 Data
-     +
-2016 Data
-     +
-2021 Data
-     |
-     v
-Feature Engineering
-     |
-     v
-Training Dataset
-     |
-     v
-Random Forest
-     |
-     v
-Trained Models
-```
-
----
-
-# 5. `election_charts.py`
-
-### Responsibility
-
-Contains the visualization class:
-
-```text
-ElectionCharts
-```
-
-This class receives election data and generates visual outputs.
-
-Major responsibilities:
+Important processing methods include:
 
 ```text
 _prepare_api_data()
 _ensure_features()
-
-plot_seats_won_by_party()
-plot_turnout_scenario()
-plot_merged_election_map()
 ```
 
-It also ensures that the input data contains the features required by the prediction system.
+These methods help prepare the data in the format expected by the prediction API and visualization functions.
 
 ---
 
-# 6. `scenario_simulator.py`
+# 12. Scenario Simulation
 
-### Responsibility
-
-Handles what-if election scenarios.
-
-Example:
+Scenario processing is implemented through:
 
 ```text
-Original turnout = 75%
-
-User Scenario:
-Turnout +5%
-
-Modified turnout = 80%
+machine_learning/scenario_simulator.py
 ```
 
-The modified data is sent to the prediction system.
+The scenario simulator allows the user to test hypothetical changes.
 
-The purpose is not to claim that the actual election will produce that result.
+For example:
 
-It demonstrates how the model's prediction changes under a simulated assumption.
+```text
+Baseline Turnout
+       |
+       v
+75%
+       |
+       v
+User selects +5%
+       |
+       v
+Scenario Turnout
+       |
+       v
+80%
+       |
+       v
+Prediction API
+       |
+       v
+Scenario Result
+```
+
+The dashboard can compare:
+
+```text
+Baseline Prediction
+        VS
+Scenario Prediction
+```
+
+This is a **what-if simulation**, not an actual election forecast.
 
 ---
 
-# 7. `election_mode.py`
+# 13. Election Map
 
-### Responsibility
-
-Provides election-related processing/mode logic used by the application.
-
-Depending on the implementation, it can help organize election modes such as:
-
-```text
-Historical Analysis
-Prediction
-Scenario Simulation
-Backtesting
-```
-
-This keeps election-specific decision logic separate from the main dashboard.
-
----
-
-# 8. Model Files
-
-## `rf_margin_model.pkl`
-
-Random Forest regression model used to predict margin-related outcomes.
-
-```text
-Historical Features
-        |
-        v
-rf_margin_model.pkl
-        |
-        v
-Predicted Margin
-```
-
----
-
-## `rf_retained_model.pkl`
-
-Classification model used to predict retention.
-
-```text
-Historical Features
-        |
-        v
-rf_retained_model.pkl
-        |
-        v
-Retained / Not Retained
-```
-
----
-
-## `rf_party_model.pkl`
-
-Classification model used to predict the possible winning party.
-
-```text
-Historical Features
-        |
-        v
-rf_party_model.pkl
-        |
-        v
-Predicted Party
-```
-
----
-
-# 9. Encoders
-
-## `state_encoder.json`
-
-Converts state names into numerical values that the ML model can understand.
-
-Example:
-
-```text
-Kerala → 0
-Tamil Nadu → 1
-Karnataka → 2
-```
-
-## `party_encoder.json`
-
-Converts party names into numerical representations.
-
-Example:
-
-```text
-Party A → 0
-Party B → 1
-Party C → 2
-```
-
-The same encoding must be used during both training and prediction.
-
----
-
-# 10. GeoJSON Map File
+The project uses:
 
 ```text
 maps/kerala_assembly.geojson
 ```
 
-This contains the geographical boundaries of Assembly constituencies.
+The GeoJSON file contains geographical constituency boundaries.
 
-It is used by Folium to create the election map.
-
-The prediction data is joined with the geographical constituency information.
+The application combines:
 
 ```text
+Election Data
+      +
 Prediction Data
-       +
-GeoJSON
-       |
-       v
-Folium Map
-       |
-       v
+      +
+GeoJSON Boundaries
+      |
+      v
+Folium
+      |
+      v
 Interactive Election Map
 ```
 
+The map can display constituency-level information based on election and prediction data.
+
 ---
 
-# Complete End-to-End Flow
+# Complete Prediction Flow
 
-The complete application works as follows:
+The complete prediction flow is:
 
 ```text
-                 1. HISTORICAL DATA
-                         |
-                         v
-              2011 / 2016 / 2021 Data
-                         |
-                         v
-                 2. DATA CLEANING
-                         |
-                         v
-              Clean and Standardize
-                         |
-                         v
-                3. FEATURE ENGINEERING
-                         |
-                         v
-       Turnout / Margin / Swing / Demographics
-                         |
-                         v
-                 4. POSTGRESQL
-                         |
-                         v
-              Constituency Metadata
-                         |
-                         v
-                 5. MODEL TRAINING
-                         |
-                         v
-                Random Forest Models
-                         |
-                         v
-                 6. MODEL STORAGE
-                         |
-                         v
-                 .pkl Model Files
-                         |
-                         v
-                  7. FASTAPI
-                         |
-              +----------+----------+
-              |          |          |
-              v          v          v
-           /predict   /scenario  /backtesting
-              |          |          |
-              +----------+----------+
-                         |
-                         v
-                 8. ML PREDICTION
-                         |
-                         v
-                 JSON API Response
-                         |
-                         v
-                 9. STREAMLIT
-                         |
-              +----------+----------+
-              |          |          |
-              v          v          v
-            Charts      Tables      Maps
-              |          |          |
-              +----------+----------+
-                         |
-                         v
-                 10. USER ANALYSIS
+                    USER
+                     |
+                     v
+              Streamlit app.py
+                     |
+                     v
+             Prepare Input Data
+                     |
+                     v
+             HTTP POST Request
+                     |
+                     v
+                FastAPI API
+                     |
+                     v
+              Validate Input
+                     |
+                     v
+           Prepare ML Features
+                     |
+                     v
+              Load ML Models
+                     |
+                     v
+            Generate Prediction
+                     |
+                     v
+               JSON Response
+                     |
+                     v
+              Streamlit App
+                     |
+                     v
+              ElectionCharts
+                     |
+          +----------+----------+
+          |          |          |
+          v          v          v
+        Charts     Tables      Maps
+          |          |          |
+          +----------+----------+
+                     |
+                     v
+               USER RESULT
 ```
 
 ---
 
-# Example: Normal Prediction Flow
+# Example Prediction
 
-Suppose the user wants a prediction for a constituency.
-
-### Input
+Suppose the input contains:
 
 ```text
 State = Kerala
+
 Demographic = Urban
+
 Turnout 2016 = 75%
+
 Turnout 2021 = 78%
+
 Margin 2016 = 5000
+
 Swing 2016 = 2.5
+
 Previous Result = Party A
 ```
 
-### Process
+The data is prepared by the frontend and sent to:
 
 ```text
-Streamlit
-    |
-    v
-Prepare input
-    |
-    v
 POST /predict
-    |
-    v
-FastAPI
-    |
-    v
-Load ML model
-    |
-    v
-Feature transformation
-    |
-    v
-Random Forest
-    |
-    v
-Prediction
-    |
-    v
-JSON response
-    |
-    v
-Streamlit
 ```
 
-### Output
-
-The dashboard can display:
+FastAPI processes the request:
 
 ```text
-Predicted Party: Party A
-Predicted Margin: 6,200
-Retention: Yes
+Input
+ |
+ v
+Feature Transformation
+ |
+ v
+Random Forest Models
+ |
+ v
+Prediction
 ```
+
+The API returns the result to Streamlit.
+
+The dashboard can then display values such as:
+
+```text
+Predicted Party
+Predicted Margin
+Retention Prediction
+```
+
+These values represent the output of the trained machine learning models.
 
 ---
 
-# Example: Scenario Simulation
+# Example Scenario
 
-Suppose the actual historical turnout is:
+Assume:
 
 ```text
-75%
+Current Turnout = 75%
 ```
 
 The user selects:
@@ -1120,305 +1148,208 @@ The application creates:
 Scenario Turnout = 80%
 ```
 
-Then:
+The scenario is sent through the prediction pipeline.
 
 ```text
-80% Turnout
-     |
-     v
-FastAPI
-     |
-     v
-ML Model
-     |
-     v
-Scenario Prediction
-```
-
-The dashboard compares:
-
-```text
+75% Baseline
+      |
+      v
 Baseline Prediction
-        vs
+
+80% Scenario
+      |
+      v
 Scenario Prediction
 ```
 
-This demonstrates the effect of a hypothetical turnout change.
+The dashboard can compare the two results.
 
 ---
 
-# Example: Historical Backtesting
+# Historical Backtesting
 
-Backtesting checks whether the model can reproduce a historical election.
+Backtesting is used to evaluate the model against historical election outcomes.
 
 Example:
 
 ```text
-Training Data
+Training Dataset
 2011 + 2016
-       |
-       v
-ML Model
-       |
-       v
+      |
+      v
+Machine Learning Model
+      |
+      v
 Predict 2021
-       |
-       v
-Compare with Actual 2021
+      |
+      v
+Actual 2021 Results
+      |
+      v
+Comparison
 ```
 
 For classification:
 
 ```text
-Actual Winner = Party A
-Predicted Winner = Party A
+Actual Winner:
+Party A
 
+Predicted Winner:
+Party A
+
+Result:
 Correct
 ```
 
 For regression:
 
 ```text
-Actual Margin = 5,500
-Predicted Margin = 5,100
+Actual Margin:
+5,500
+
+Predicted Margin:
+5,100
 ```
 
-The difference can then be used to evaluate model performance.
+The difference between actual and predicted values can be used to evaluate the regression model.
 
 ---
 
-# Why FastAPI Is Used
+# Dashboard Structure
 
-A major design decision in this project is separating the frontend and machine learning backend.
-
-Instead of:
+The Streamlit dashboard is designed around several analytical sections.
 
 ```text
-Streamlit → ML Model
++-----------------------------+-----------------------------+
+|                             |                             |
+|    Seats Won by Party       |   Turnout Scenario         |
+|                             |   Simulator                 |
+|                             |                             |
++-----------------------------+-----------------------------+
+
++----------------+----------------+----------------+
+|                |                |                |
+|   Retention    |  Party Flips   | Turnout Trend  |
+|                |                |                |
++----------------+----------------+----------------+
+
++------------------------------------------------------------+
+|                  Constituency Details                      |
++------------------------------------------------------------+
+
++------------------------------------------------------------+
+|                     Election Map                           |
++------------------------------------------------------------+
 ```
 
-the project uses:
+This allows historical analysis and model-based analysis to be viewed in one interface.
+
+# Data and Feature Flow
+
+The overall data transformation is:
 
 ```text
-Streamlit → FastAPI → ML Model
+Raw Election Data
+       |
+       v
+Cleaning
+       |
+       v
+Standardization
+       |
+       v
+Historical Merge
+       |
+       v
+Feature Engineering
+       |
+       v
+Categorical Encoding
+       |
+       v
+Training Features
+       |
+       v
+Machine Learning
 ```
-
-Advantages:
-
-* Clear separation of frontend and backend.
-* Machine learning models are centralized.
-* APIs can be reused by other applications.
-* Easier testing.
-* Easier deployment.
-* Better representation of a real-world ML system.
 
 ---
 
-# Why PostgreSQL Is Used
+# Feature Set
 
-PostgreSQL is used to maintain structured constituency and election metadata.
+The prediction API uses a consistent feature structure.
 
-Instead of storing everything inside Python variables:
+The core prediction features include:
+
+| Feature               | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| `state_encoded`       | Numerical representation of state                |
+| `demographic_encoded` | Numerical representation of demographic category |
+| `turnout_2016`        | Voter turnout in 2016                            |
+| `turnout_2021`        | Voter turnout in 2021                            |
+| `turnout_change_21`   | Change in turnout between historical elections   |
+| `margin_2016`         | Historical margin of victory                     |
+| `swing_2016`          | Historical swing factor                          |
+| `result_2016_encoded` | Encoded previous election result                 |
+
+Feature names must remain consistent across:
 
 ```text
-Python
-   |
-   v
-PostgreSQL
+Training
+      |
+      v
+FastAPI
+      |
+      v
+Streamlit
+      |
+      v
+Visualization
 ```
 
-The database provides persistent storage and allows structured querying.
+A mismatch between training and prediction feature names can cause prediction errors.
 
 ---
 
-# Why Random Forest Is Used
+# Model Storage
 
-Random Forest is suitable for this project because election data contains a mixture of numerical and categorical-derived features and may contain nonlinear relationships.
-
-The project uses Random Forest for:
+Trained models are serialized using Joblib.
 
 ```text
-Regression
-Classification
+models/
+│
+├── rf_margin_model.pkl
+├── rf_retained_model.pkl
+└── rf_party_model.pkl
 ```
 
-It also provides a relatively robust baseline for tabular datasets.
-
----
-
-# Full Application Responsibility
+Encoders:
 
 ```text
-+----------------------+--------------------------------------+
-| Component            | Responsibility                       |
-+----------------------+--------------------------------------+
-| app.py               | Streamlit frontend                   |
-| api.py               | REST API backend                     |
-| connection.py        | PostgreSQL connection                |
-| election_model.py    | ML training and feature engineering  |
-| election_charts.py   | Charts and maps                      |
-| scenario_simulator.py| What-if scenario processing          |
-| election_mode.py     | Election processing/modes            |
-| PostgreSQL           | Persistent election metadata         |
-| .pkl files           | Trained ML models                    |
-| JSON encoders        | Categorical encoding                 |
-| GeoJSON              | Constituency boundaries              |
-+----------------------+--------------------------------------+
+models/
+│
+├── state_encoder.json
+└── party_encoder.json
 ```
 
----
-
-# Academic Requirements Coverage
-
-| Assignment Requirement                    | Implementation                   |
-| ----------------------------------------- | -------------------------------- |
-| Historical election data 2011, 2016, 2021 | `dataset/training/`              |
-| Data cleaning                             | Data engineering pipeline        |
-| Margin of victory                         | Feature engineering              |
-| Voter turnout                             | Historical and scenario features |
-| Swing factors                             | Feature engineering              |
-| Rural/Urban demographic data              | `demographic_encoded`            |
-| Regression/Classification                 | Random Forest models             |
-| Scenario simulation                       | `/predict/scenario`              |
-| Historical backtesting                    | `/predict/backtesting`           |
-| Backend                                   | FastAPI                          |
-| Frontend                                  | Streamlit                        |
-| Map visualization                         | Folium + GeoJSON                 |
-| Database                                  | PostgreSQL                       |
-| Constituency metadata                     | PostgreSQL                       |
-| Model serving                             | FastAPI                          |
-| Interactive dashboard                     | Streamlit                        |
+The models are loaded by the backend/prediction layer when required.
 
 ---
 
-# Important Architecture Principle
+# Database Connection
 
-The most important concept in this project is the separation of responsibilities.
+Database functionality is separated into:
 
 ```text
-DATA
- ↓
-DATABASE
- ↓
-ML
- ↓
-API
- ↓
-FRONTEND
- ↓
-VISUALIZATION
+database/connection.py
 ```
 
-Each layer performs a specific job.
-
-The frontend should not contain the complete ML logic.
-
-The backend should not contain dashboard visualization logic.
-
-The database should store data rather than perform prediction.
-
-The ML layer should train and provide models.
-
-This makes the application modular and maintainable.
-
----
-
-# Final Project Flow
-
-```text
-User opens Streamlit Dashboard
-              |
-              v
-        app.py starts
-              |
-              v
-   Check FastAPI /health
-              |
-              v
-       FastAPI available
-              |
-              v
-     User selects analysis
-              |
-              v
-     Prepare election data
-              |
-              v
-       Send HTTP request
-              |
-              v
-          FastAPI
-              |
-              v
-      Validate input data
-              |
-              v
-       Prepare ML features
-              |
-              v
-       Load trained models
-              |
-              v
-       Generate prediction
-              |
-              v
-      Return JSON response
-              |
-              v
-          Streamlit
-              |
-              v
-     Convert response to data
-              |
-              v
-      ElectionCharts class
-              |
-       +------+------+
-       |      |      |
-       v      v      v
-     Charts  Tables  Maps
-       |      |      |
-       +------+------+
-              |
-              v
-        Final Dashboard
-```
-
----
-
-# Project Outcome
-
-The project demonstrates an end-to-end full-stack machine learning application capable of:
-
-1. Processing historical election data.
-2. Engineering meaningful election features.
-3. Storing structured constituency information.
-4. Training machine learning models.
-5. Serving predictions through FastAPI.
-6. Performing hypothetical scenario simulations.
-7. Performing historical backtesting.
-8. Presenting predictions through an interactive Streamlit dashboard.
-9. Visualizing election information through charts, tables, and maps.
-
-The 2026 results generated by the system should be interpreted as **model-based hypothetical predictions**, not as guaranteed election outcomes.
-
----
-
-# How to Run
-
-## 1. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-## 2. Configure PostgreSQL
-
-Create the required database and configure the environment variables in `.env`.
+The application uses environment variables for database configuration.
 
 Example:
 
-```text
+```env
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=election_db
@@ -1426,66 +1357,679 @@ DB_USER=postgres
 DB_PASSWORD=your_password
 ```
 
-## 3. Train the models
+Do not commit actual database passwords or secrets to GitHub.
 
-Run the machine learning training pipeline.
+---
 
-This generates the required files inside:
+# Installation
+
+## 1. Clone the Repository
+
+```bash
+git clone https://github.com/Greeshma-babu/Election_Analysis.git
+```
+
+Move into the project directory:
+
+```bash
+cd Election_Analysis
+```
+
+---
+
+# 2. Create a Virtual Environment
+
+Windows:
+
+```bash
+python -m venv .venv
+```
+
+Activate it:
+
+```bash
+.venv\Scripts\activate
+```
+
+---
+
+# 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+The project dependencies include packages such as:
+
+```text
+psycopg2-binary
+python-dotenv
+pandas
+openpyxl
+streamlit
+folium
+streamlit-folium
+plotly
+scikit-learn
+xgboost
+joblib
+numpy
+fastapi
+uvicorn
+requests
+```
+
+---
+
+# 4. Configure PostgreSQL
+
+Install and start PostgreSQL.
+
+Create the project database:
+
+```text
+election_db
+```
+
+Configure the `.env` file:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=election_db
+DB_USER=postgres
+DB_PASSWORD=your_password
+```
+
+Use your local PostgreSQL credentials.
+
+---
+
+# 5. Prepare the Dataset
+
+Place the required historical datasets under:
+
+```text
+dataset/training/
+```
+
+Expected datasets include:
+
+```text
+election_2011.csv
+election_2016.csv
+election_2021.csv
+legislative_assembly_data.xlsx
+```
+
+The training pipeline can generate the merged training dataset:
+
+```text
+merged_election_data.csv
+```
+
+---
+
+# 6. Train the Machine Learning Models
+
+Run the machine learning training pipeline from the project environment.
+
+The training process generates the model files under:
 
 ```text
 models/
 ```
 
-## 4. Start FastAPI
+Expected model artifacts:
+
+```text
+rf_margin_model.pkl
+rf_retained_model.pkl
+rf_party_model.pkl
+state_encoder.json
+party_encoder.json
+```
+
+---
+
+# 7. Start FastAPI
+
+From the project root:
 
 ```bash
 uvicorn api:app --reload
 ```
 
-FastAPI will normally be available at:
+The API normally runs at:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Swagger API documentation:
+---
+
+# 8. Open FastAPI Swagger Documentation
+
+FastAPI automatically provides interactive API documentation at:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## 5. Start Streamlit
+You can use Swagger UI to test endpoints such as:
+
+```text
+GET  /health
+
+POST /predict
+
+POST /predict/bulk
+
+POST /predict/scenario
+
+POST /predict/backtesting
+
+POST /predict/retention
+```
+
+---
+
+# 9. Start Streamlit
+
+Open another terminal.
+
+Activate the virtual environment if necessary:
+
+```bash
+.venv\Scripts\activate
+```
+
+Run:
 
 ```bash
 streamlit run app.py
 ```
 
-The dashboard will open in the browser.
+The Streamlit application will open in your browser.
+
+---
+
+# Running the Complete Application
+
+Two services are involved:
+
+```text
+              Election Analysis Application
+
+                       USER
+                        |
+                        v
+                Streamlit :8501
+                        |
+                        | HTTP
+                        v
+                  FastAPI :8000
+                        |
+                        v
+                  ML Models
+                        |
+                        v
+                   Prediction
+                        |
+                        v
+                  Streamlit
+```
+
+Recommended startup order:
+
+```text
+1. PostgreSQL
+      |
+2. FastAPI
+      |
+3. Streamlit
+```
+
+---
+
+# API Testing Flow
+
+A typical API testing flow is:
+
+```text
+Start FastAPI
+      |
+      v
+Open /docs
+      |
+      v
+Select endpoint
+      |
+      v
+Provide JSON input
+      |
+      v
+Execute
+      |
+      v
+Check response
+```
+
+This makes it possible to test the backend independently from Streamlit.
+
+---
+
+# Separation of Responsibilities
+
+One of the main architectural principles of the project is separation of responsibilities.
+
+```text
++----------------------+---------------------------------------+
+| Component            | Responsibility                        |
++----------------------+---------------------------------------+
+| app.py               | Streamlit frontend                    |
+| api.py               | FastAPI backend / model serving       |
+| connection.py        | PostgreSQL connectivity               |
+| election_model.py    | ML training and feature engineering   |
+| scenario_simulator.py| Scenario processing                   |
+| election_charts.py   | Charts, maps and visualization        |
+| PostgreSQL           | Persistent structured data            |
+| .pkl files           | Trained machine learning models       |
+| JSON encoders        | Categorical encoding mappings         |
++----------------------+---------------------------------------+
+```
+
+This means:
+
+```text
+Frontend
+   |
+   | displays and collects input
+   v
+FastAPI
+   |
+   | validates and serves prediction
+   v
+Machine Learning
+   |
+   | generates model output
+   v
+Frontend
+   |
+   | visualizes result
+   v
+User
+```
+
+---
+
+# End-to-End Architecture
+
+```text
+                 ┌───────────────────────┐
+                 │ Historical Election   │
+                 │ Data                  │
+                 │ 2011 / 2016 / 2021   │
+                 └───────────┬───────────┘
+                             |
+                             v
+                 ┌───────────────────────┐
+                 │ Data Cleaning         │
+                 │ & Preparation         │
+                 └───────────┬───────────┘
+                             |
+                             v
+                 ┌───────────────────────┐
+                 │ Feature Engineering   │
+                 │ Turnout / Margin /    │
+                 │ Swing / Demographics  │
+                 └───────────┬───────────┘
+                             |
+                  ┌──────────┴──────────┐
+                  |                     |
+                  v                     v
+        ┌─────────────────┐   ┌──────────────────┐
+        │ PostgreSQL      │   │ ML Training      │
+        │ Database        │   │ Random Forest    │
+        └─────────────────┘   └────────┬─────────┘
+                                       |
+                                       v
+                              ┌─────────────────┐
+                              │ Saved Models    │
+                              │ .pkl + Encoders │
+                              └────────┬────────┘
+                                       |
+                                       v
+                              ┌─────────────────┐
+                              │ FastAPI         │
+                              │ Prediction API  │
+                              └────────┬────────┘
+                                       |
+                              HTTP / JSON
+                                       |
+                                       v
+                              ┌─────────────────┐
+                              │ Streamlit       │
+                              │ Dashboard       │
+                              └────────┬────────┘
+                                       |
+                    ┌──────────────────┼──────────────────┐
+                    |                  |                  |
+                    v                  v                  v
+                Plotly              Tables             Folium
+                Charts                                  Maps
+                    |                  |                  |
+                    └──────────────────┼──────────────────┘
+                                       |
+                                       v
+                                  User Analysis
+```
+
+---
+
+# Academic Requirements Coverage
+
+| Requirement              | Implementation                                              |
+| ------------------------ | ----------------------------------------------------------- |
+| Historical Election Data | 2011, 2016, 2021 datasets                                   |
+| Data Cleaning            | Data preparation pipeline                                   |
+| Feature Engineering      | Turnout, margin, swing, demographics and historical results |
+| Voter Turnout            | Historical turnout features                                 |
+| Margin of Victory        | Margin features and margin prediction                       |
+| Swing Factor             | Historical swing feature                                    |
+| Demographic Analysis     | Urban / Semi-Urban / Rural encoding                         |
+| Machine Learning         | Scikit-learn Random Forest                                  |
+| Regression               | Margin prediction                                           |
+| Classification           | Party and retention prediction                              |
+| Scenario Simulation      | Turnout scenario API                                        |
+| Historical Backtesting   | Backtesting API                                             |
+| Backend                  | FastAPI                                                     |
+| Frontend                 | Streamlit                                                   |
+| Database                 | PostgreSQL                                                  |
+| Visualization            | Plotly                                                      |
+| Maps                     | Folium + GeoJSON                                            |
+| Model Serialization      | Joblib                                                      |
+| API Testing              | FastAPI Swagger UI                                          |
+
+---
+
+# Project Lifecycle
+
+The complete machine learning lifecycle is:
+
+```text
+1. Data Collection
+        |
+        v
+2. Data Cleaning
+        |
+        v
+3. Data Transformation
+        |
+        v
+4. Feature Engineering
+        |
+        v
+5. Database Storage
+        |
+        v
+6. Model Training
+        |
+        v
+7. Model Evaluation
+        |
+        v
+8. Model Serialization
+        |
+        v
+9. API Model Serving
+        |
+        v
+10. Prediction
+        |
+        v
+11. Scenario Simulation
+        |
+        v
+12. Historical Backtesting
+        |
+        v
+13. Visualization
+        |
+        v
+14. Interactive Dashboard
+```
+
+---
+
+# Example Use Cases
+
+## Historical Analysis
+
+A user can analyze:
+
+```text
+Which parties performed strongly?
+How did turnout change?
+What were the historical margins?
+Which constituencies changed parties?
+```
+
+---
+
+## Constituency Prediction
+
+A user can provide historical constituency features and obtain model-based predictions.
+
+```text
+Historical Features
+        |
+        v
+FastAPI
+        |
+        v
+ML Models
+        |
+        v
+Prediction
+```
+
+---
+
+## Turnout Scenario
+
+A user can test:
+
+```text
+What happens if turnout increases by 5%?
+```
+
+The application modifies the turnout feature and generates a scenario prediction.
+
+---
+
+## Retention Analysis
+
+The application can analyze whether historical patterns indicate that a previous winning party may retain a constituency.
+
+---
+
+## Historical Backtesting
+
+The application can simulate prediction on a historical election and compare the predicted output with the actual result.
+
+---
+
+# Important Design Principle
+
+The project follows a layered architecture:
+
+```text
+DATA
+  |
+  v
+DATABASE
+  |
+  v
+MACHINE LEARNING
+  |
+  v
+FASTAPI
+  |
+  v
+STREAMLIT
+  |
+  v
+VISUALIZATION
+  |
+  v
+USER
+```
+
+Each layer has a separate responsibility.
+
+### Frontend
+
+Handles:
+
+```text
+User interaction
+Dashboard
+Charts
+Tables
+Maps
+```
+
+### Backend
+
+Handles:
+
+```text
+API requests
+Validation
+Prediction serving
+JSON responses
+```
+
+### Machine Learning
+
+Handles:
+
+```text
+Data preparation
+Feature engineering
+Training
+Evaluation
+Model generation
+```
+
+### Database
+
+Handles:
+
+```text
+Persistent structured information
+```
+
+### Visualization
+
+Handles:
+
+```text
+Charts
+Maps
+Analytical displays
+```
+
+This makes the application modular and easier to maintain.
+
+---
+
+# Project Outcome
+
+This project demonstrates a complete full-stack machine learning workflow.
+
+It combines:
+
+```text
+Data Engineering
+      |
+      v
+Feature Engineering
+      |
+      v
+Machine Learning
+      |
+      v
+Model Serialization
+      |
+      v
+FastAPI Model Serving
+      |
+      v
+Streamlit Frontend
+      |
+      v
+Visualization
+      |
+      v
+Scenario Simulation
+      |
+      v
+Historical Backtesting
+      |
+      v
+Interactive Election Analysis
+```
+
+The final application demonstrates how historical election data can be transformed into an interactive machine learning application with:
+
+* Historical analysis
+* Machine learning prediction
+* Party prediction
+* Retention analysis
+* Turnout scenario simulation
+* Historical backtesting
+* PostgreSQL integration
+* FastAPI model serving
+* Streamlit dashboard
+* Plotly visualization
+* Folium election maps
 
 ---
 
 # Conclusion
 
-**Election Analysis 2026** demonstrates how a machine learning model can be transformed into a complete production-style application.
+**Election Analysis 2026** demonstrates the complete lifecycle of a full-stack machine learning application.
 
 The project connects:
 
 ```text
-Data Engineering
-       ↓
+Historical Data
+      ↓
+Data Cleaning
+      ↓
+Feature Engineering
+      ↓
+PostgreSQL
+      ↓
 Machine Learning
-       ↓
-Database
-       ↓
-REST API
-       ↓
-Interactive Frontend
-       ↓
-Visualization
-       ↓
+      ↓
+Saved Models
+      ↓
+FastAPI
+      ↓
+Streamlit
+      ↓
+Charts / Tables / Maps
+      ↓
 Scenario Analysis
-       ↓
-Backtesting
+      ↓
+Historical Backtesting
 ```
 
-This architecture demonstrates the complete lifecycle of a full-stack machine learning application, from historical data processing to model-driven interactive analysis.
+The architecture separates data processing, machine learning, API services, database operations, frontend interaction, and visualization into dedicated components.
+
+This makes the project suitable as an academic demonstration of how a machine learning model can be integrated into a complete application rather than being used only as an isolated Python script.
+
+---
