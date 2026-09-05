@@ -411,7 +411,7 @@ FastAPI acts as the backend prediction service.
 The main backend file is:
 
 ```text
-fastapi_app.py
+api.py
 ```
 
 The Streamlit frontend does not directly execute the machine learning models.
@@ -686,7 +686,7 @@ Turnout Increase = 5%
 
 ---
 
-# 2. `fastapi_app.py`
+# 2. `api_app.py`
 
 ### Responsibility
 
@@ -1249,7 +1249,7 @@ It also provides a relatively robust baseline for tabular datasets.
 | Component            | Responsibility                       |
 +----------------------+--------------------------------------+
 | app.py               | Streamlit frontend                   |
-| fastapi_app.py       | REST API backend                     |
+| api.py               | REST API backend                     |
 | connection.py        | PostgreSQL connection                |
 | election_model.py    | ML training and feature engineering  |
 | election_charts.py   | Charts and maps                      |
@@ -1435,7 +1435,7 @@ models/
 ## 4. Start FastAPI
 
 ```bash
-uvicorn fastapi_app:app --reload
+uvicorn api:app --reload
 ```
 
 FastAPI will normally be available at:
