@@ -9,6 +9,9 @@ The application uses historical data to train machine learning models and provid
 The project demonstrates the complete machine learning lifecycle:
 
 **Data Collection → Data Cleaning → Feature Engineering → Database → Model Training → Model Prediction → FastAPI → Streamlit Dashboard → Visualization → Scenario Simulation → Historical Backtesting**
+<img width="872" height="282" alt="image" src="https://github.com/user-attachments/assets/a6e311ea-263c-46a3-aa0c-d1103625f44a" />
+<img width="835" height="457" alt="image" src="https://github.com/user-attachments/assets/013d585b-6913-4833-93a1-079e47af2574" />
+<img width="1912" height="856" alt="image" src="https://github.com/user-attachments/assets/af2936a7-463a-429a-8ffa-16c9862a624d" />
 
 ---
 
